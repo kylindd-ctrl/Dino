@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ _["create_new_project"] }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> {{ _["create_new_project"] }}</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="/api/projects" id="projectForm">
+          <div class="mb-3">
+            <label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="name" required placeholder="e.g., FATIMA UNIVERSITY">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["customer_name_label"] }}</label>
+            <input type="text" class="form-control" id="customer_name" placeholder="e.g., Fatima University">
+          </div>
+          
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["google_maps_link_label"] }}</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="google_maps_link" placeholder="https://maps.google.com/?q=14.6797,120.9798" autocomplete="off">
+              <a class="btn btn-outline-success" id="mapsJumpBtn" href="#" target="_blank" onclick="this.href='https://www.google.com/maps?q='+document.getElementById('latPreview').textContent+','+document.getElementById('lngPreview').textContent"><i class="bi bi-geo-alt-fill"></i></a>
+            </div>
+            <div class="form-text">{{ _["google_maps_help"] }}</div>
+          </div>
+          <div class="mb-3" id="geoPreview" style="display:none;">
+            <div class="alert alert-success border-success">
+              <strong>{{ _["parse_success"] }}!</strong>
+              <table class="table table-sm table-borderless mb-0 small">
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["latitude"] }}:</td><td class="p-0"><code id="latPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["longitude"] }}:</td><td class="p-0"><code id="lngPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["address"] }}:</td><td class="p-0"><span id="addrPreview" class="text-success"></span></td></tr>
+              </table>
+            </div>
+          </div>
+
+<div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> {{ _["create_project"] }}</a>
+            <a href="/" class="btn btn-outline-secondary">{{ _["cancel"] }}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("google_maps_link")?.addEventListener("input",function(){
+  var u=this.value.trim(),m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/\/search\/(-?\d+\.\d+),\+?(-?\d+\.\d+)/);
+  if(m){
+    var lat=parseFloat(m[1]||m[0]),lng=parseFloat(m[2]||m[1]);
+    document.getElementById("latPreview").textContent=lat.toFixed(6);
+    document.getElementById("lngPreview").textContent=lng.toFixed(6);
+    document.getElementById("geoPreview").style.display="block";
+    var g=new XMLHttpRequest();g.open("GET","https://nominatim.openstreetmap.org/reverse?lat="+lat+"&lon="+lng+"&format=json&accept-language=en",true);
+    g.onreadystatechange=function(){if(g.readyState==4&&g.status==200){var d=JSON.parse(g.responseText);if(d&&d.display_name)document.getElementById("addrPreview").textContent=d.display_name;}};g.send();
+  }else{document.getElementById("geoPreview").style.display="none";}
+});
+
+document.getElementById("projectForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  var name = document.getElementById("name").value.trim();
+  if (!name) { alert("Project name is required."); return; }
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/projects", true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 201) {
+        var d = JSON.parse(xhr.responseText);
+        window.location.href = "/projects/" + d.id;
+      } else {
+        try { var err = JSON.parse(xhr.responseText); alert("Error: " + (err.error || "Create failed")); }
+        catch(ex) { alert("Create failed"); }
+      }
+    }
+  };
+  xhr.send(JSON.stringify({name: name, customer_name: document.getElementById("customer_name").value.trim()}));
+});
+</script>
+{% endblock %}

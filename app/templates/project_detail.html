@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}Project - {{ _["app_title"] }}{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{{ _["dashboard"] }}</a></li>
+        <li class="breadcrumb-item active">{{ pd.name if pd else _["project_info"] }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<!-- Project Header -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4 class="mb-1" id="projectName">{% if pd %}{{ pd.name }}{% else %}Not found{% endif %}</h4>
+        <p class="text-muted mb-0" id="projectCustomer">{% if pd %}{{ pd.customer_name or "" }}{% endif %}</p>
+      </div>
+      <div>
+        {% if pd %}
+        <span class="badge fs-6 {% if pd.status=='draft' %}bg-secondary{% elif pd.status=='pdf_uploaded' %}bg-info text-dark{% elif pd.status=='gsa_uploaded' %}bg-primary{% elif pd.status=='calculated' %}bg-warning text-dark{% elif pd.status=='completed' %}bg-success{% endif %}">
+          {% if pd.status=='draft' %}Draft{% elif pd.status=='pdf_uploaded' %}PDF Done{% elif pd.status=='gsa_uploaded' %}GSA Done{% elif pd.status=='calculated' %}Calculated{% elif pd.status=='completed' %}Completed{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    {% if pd and pd.latitude %}
+    <div class="row mt-3 small text-muted">
+      <div class="col-md-4"><strong>{{ _["latitude"] }}:</strong> {{ pd.latitude }}</div>
+      <div class="col-md-4"><strong>{{ _["longitude"] }}:</strong> {{ pd.longitude }}</div>
+      <div class="col-md-4"><strong>{{ _["address"] }}:</strong> {{ pd.address or "-" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="row g-3">
+
+  <!-- Step 1: Project Info -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">1</span> {{ _["project_info"] }}</h6>
+          <i class="bi bi-check-circle-fill text-success"></i>
+        </div>
+        {% if pd %}
+        <table class="table table-sm table-borderless mb-1 small">
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2" style="width:65px;">{{ _["project_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.name }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["customer_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.customer_name or "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["latitude"] }}</td><td class="p-0">{{ pd.latitude if pd.latitude else "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["longitude"] }}</td><td class="p-0">{{ pd.longitude if pd.longitude else "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["address"] }}</td><td class="p-0 text-truncate">{{ pd.address or "-" }}</td></tr>
+        </table>
+        <a href="#" class="text-decoration-none small" onclick="showEditProject()"><i class="bi bi-pencil"></i> {{ _["edit"] }}</a>
+        {% else %}
+        <p class="small text-muted">{{ _["project_name"] }} + {{ _["google_maps_link_label"] }}.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: OpenSolar PDF -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">2</span> {{ _["opensolar_pdf"] }}</h6>
+          <i class="bi {% if pd and pd.pv_system %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        {% if pd and pd.pv_system %}
+        <div class="small">
+          <table class="table table-sm table-borderless mb-1">
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. {{ _["system_capacity"] }}</td><td class="p-0 text-success">{{ pd.pv_system.capacity_kwp }} kWp</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] if _["module_count"] is defined else "Module Qty" }}</td><td class="p-0 text-success">{{ pd.module.quantity }} pcs</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] if _["module_model"] is defined else "Module Model" }}</td><td class="p-0 text-success">{{ pd.module.brand }} {{ pd.module.model }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] if _["inv_count"] is defined else "Inverter Qty" }}</td><td class="p-0 text-success">{{ pd.inverter.quantity }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] if _["inv_model"] is defined else "Inverter Model" }}</td><td class="p-0 text-success">{{ pd.inverter.brand }} {{ pd.inverter.model }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. {{ _["co2_reduction"] }}</td><td class="p-0 text-success">{{ pd.pv_system.co2_reduction_tons }} t/yr</td></tr>
+          </table>
+          <a href="#" class="text-decoration-none small" onclick="document.getElementById('step2Content').style.display=''"><i class="bi bi-arrow-repeat"></i> Replace</a>
+        </div>
+        <div id="step2Content" style="display:none">
+          <form onsubmit="return uploadPdf(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
+            <div id="step2Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
+          </form>
+        </div>
+        {% else %}
+        <div id="step2Content">
+          <form onsubmit="return uploadPdf(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
+            <div id="step2Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: GSA -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">3</span> {{ _["gsa_solar_data"] }}</h6>
+          <i class="bi {% if pd and pd.solar %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        {% if pd and pd.solar %}
+        <div class="small">{{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m²<br>{{ _["flh"] }}: {{ pd.solar.flh }} h/yr</div>
+        {% endif %}
+        <div id="step3Content" style="{% if pd and pd.solar %}display:none{% endif %}">
+          <form onsubmit="return uploadGsa(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="gsaFile" accept=".xlsx"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
+            <div id="step3Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Calculate -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-warning text-dark me-1">4</span> {{ _["financial_calc"] }}</h6>
+          <i class="bi {% if pd and pd.finance %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        <button class="btn btn-sm btn-warning" id="calcBtn" onclick="runCalc()" {% if not pd or not pd.solar %}disabled{% endif %}><i class="bi bi-calculator"></i> {{ _["run_calculation"] }}</a>
+        {% if pd and pd.finance %}
+        <div class="small mt-2 p-2 bg-light rounded">
+          {{ _["capex"] }}: ₱ {{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
+          {{ _["year1_revenue"] }}: ₱ {{ "{:,.0f}".format(pd.finance.revenue) if pd.finance.revenue else "-" }}<br>
+          {{ _["payback"] }}: {{ pd.finance.payback }}{% if pd.finance.payback %} yr{% endif %}<br>
+          {{ _["irr"] }}: {{ "{:.2f}%".format(pd.finance.irr*100) if pd.finance.irr else "-" }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: PPT -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">5</span> {{ _["generate_ppt"] }}</h6>
+          <i class="bi {% if pd and pd.status=='completed' %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        <button class="btn btn-sm btn-success" onclick="genPpt()" {% if not pd or not pd.finance %}disabled{% endif %}><i class="bi bi-file-ppt"></i> {{ _["generate_proposal"] }}</a>
+        {% if pd and pd.status=='completed' %}
+        <div class="mt-2"><a href="/api/projects/{{ pd.id }}/download-ppt" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> {{ _["download_ppt"] }}</a></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Summary -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="card-title"><i class="bi bi-bar-chart"></i> {{ _["data_summary"] }}</h6>
+        <div class="small text-muted">
+          {% if pd and pd.pv_system %}
+          {{ _["system_capacity"] }}: {{ pd.pv_system.capacity_kwp }} kWp<br>
+          {{ _["annual_gen"] }}: {{ "{:,.0f}".format(pd.pv_system.annual_generation_kwh/1000) }}{% if pd.pv_system.annual_generation_kwh %} MWh/yr{% endif %}<br>
+          {{ _["co2_reduction"] }}: {{ pd.pv_system.co2_reduction_tons }} t/yr<br>
+          {% endif %}
+          {% if pd and pd.solar %}
+          {{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m²<br>
+          {{ _["flh"] }}: {{ pd.solar.flh }} h/yr<br>
+          {% endif %}
+          {% if pd and pd.finance %}
+          {{ _["capex"] }}: ₱ {{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
+          {{ _["payback"] }}: {{ pd.finance.payback or "-" }} yr<br>
+          {{ _["irr"] }}: {{ "{:.2f}%".format(pd.finance.irr*100) if pd.finance.irr else "-" }}<br>
+          {% endif %}
+          {% if not pd or not pd.pv_system %}{{ _["no_data"] }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Project</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></a></div>
+      <div class="modal-body">
+        <form id="editProjectForm" onsubmit="return saveEdit()">
+          <div class="mb-3"><label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label><input type="text" class="form-control" id="editName" required></div>
+          <div class="mb-3"><label class="form-label">{{ _["customer_name_label"] }}</label><input type="text" class="form-control" id="editCustomer"></div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["google_maps_link_label"] }}</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="editMapsLink">
+              <a class="btn btn-outline-success" id="editMapsJumpBtn" href="#" target="_blank"  style="opacity:0.5"><i class="bi bi-geo-alt-fill"></i></a>
+            </div>
+          </div>
+          <div class="mb-3" id="editGeoPreview" style="display:none;">
+            <div class="alert alert-success border-success py-2">
+              <i class="bi bi-check-circle-fill text-success me-1"></i>
+              <strong>{{ _["parse_success"] }}!</strong>
+              <table class="table table-sm table-borderless mb-0 small mt-1">
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["latitude"] }}:</td><td class="p-0"><code id="editLatPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["longitude"] }}:</td><td class="p-0"><code id="editLngPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["address"] }}:</td><td class="p-0"><span id="editAddrPreview" class="text-success"></span></td></tr>
+              </table>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</a>
+        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> {{ _["save"] }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Embedded project data for instant edit
+var _editData = {% if pd %}{{ pd | tojson }}{% else %}null{% endif %};
+
+function showEditProject() {
+  try {
+    var d = _editData;
+    if (!d) { alert("No project data"); return; }
+    document.getElementById("editName").value = d.name || "";
+    document.getElementById("editCustomer").value = d.customer_name || "";
+    document.getElementById("editMapsLink").value = d.google_maps_link || "";
+    var btn = document.getElementById("editMapsJumpBtn");
+    var latEl = document.getElementById("editLatPreview");
+    var lngEl = document.getElementById("editLngPreview");
+    if (d.latitude && latEl) {
+      latEl.textContent = d.latitude;
+      lngEl.textContent = d.longitude;
+      var aEl = document.getElementById("editAddrPreview");
+      if (aEl) aEl.textContent = d.address || "";
+      btn.href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
+      btn.style.opacity = "1";
+    } else {
+      btn.removeAttribute("href");
+      btn.style.opacity = "0.5";
+    }
+    if (typeof bootstrap === "undefined") { alert("Bootstrap not loaded"); return; }
+    new bootstrap.Modal(document.getElementById("editProjectModal")).show();
+  } catch(e) {
+    alert("Edit error: " + e.message);
+  }
+}
+
+document.getElementById("editMapsLink")?.addEventListener("input",function(){
+  var u=this.value.trim(),m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m){
+    document.getElementById("editLatPreview").textContent=parseFloat(m[1]).toFixed(6);
+    document.getElementById("editLngPreview").textContent=parseFloat(m[2]).toFixed(6);
+    document.getElementById("editGeoPreview").style.display="block";
+  } else {
+    document.getElementById("editGeoPreview").style.display="none";
+  }
+});
+
+function saveEdit() {
+  var name = document.getElementById("editName").value.trim();
+  if (!name) { alert("Name required"); return false; }
+  var x = new XMLHttpRequest();
+  x.open("PUT", "/api/projects/{{ pd.id if pd else 0 }}", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) { bootstrap.Modal.getInstance(document.getElementById("editProjectModal")).hide(); location.reload(); } };
+  x.send(JSON.stringify({name: name, customer_name: document.getElementById("editCustomer").value.trim(), google_maps_link: document.getElementById("editMapsLink").value.trim()}));
+  return false;
+}
+
+function uploadPdf(form) {
+  var file = document.getElementById("pdfFile").files[0];
+  if (!file) { alert("Select PDF."); return false; }
+  var fd = new FormData(); fd.append("file", file);
+  document.getElementById("step2Progress").style.display = "";
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/upload/pdf", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("step2Progress").style.display = "none";
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Upload failed")); } catch(ex) { alert("Upload failed"); } }
+    }
+  };
+  x.send(fd);
+  return false;
+}
+
+function uploadGsa(form) {
+  var file = document.getElementById("gsaFile").files[0];
+  if (!file) { alert("Select Excel."); return false; }
+  var fd = new FormData(); fd.append("file", file);
+  document.getElementById("step3Progress").style.display = "";
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/upload/gsa", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("step3Progress").style.display = "none";
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Upload failed")); } catch(ex) { alert("Upload failed"); } }
+    }
+  };
+  x.send(fd);
+  return false;
+}
+
+function runCalc() {
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/calculate", true);
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) location.reload(); else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Calc failed")); } catch(ex) { alert("Calc failed"); } } };
+  x.send();
+}
+
+function genPpt() {
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/generate-ppt", true);
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) location.reload(); else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Gen failed")); } catch(ex) { alert("Gen failed"); } } };
+  x.send();
+}
+function openEditMaps(link) {
+  var d = _editData;
+  if (!d || !d.latitude) { alert("No coordinates. Add a Maps link in Edit first."); return false; }
+  link.href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
+  return true;
+}
+</script>
+{% endblock %}

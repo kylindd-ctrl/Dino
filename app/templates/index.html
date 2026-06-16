@@ -1,0 +1,136 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ _["dashboard"] }} - {{ _["app_title"] }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3"><i class="bi bi-speedometer2"></i> {{ _["dashboard"] }}</h1>
+  <a href="/projects/new" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> {{ _["new_project"] }}
+  </a>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-primary text-white">
+      <div class="card-body">
+        <h6 class="card-title">{{ _["total_projects"] }}</h6>
+        <h2 class="mb-0" id="totalCount">0</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-success text-white">
+      <div class="card-body">
+        <h6 class="card-title">{{ _["completed"] }}</h6>
+        <h2 class="mb-0" id="completedCount">0</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-warning text-dark">
+      <div class="card-body">
+        <h6 class="card-title">{{ _["in_progress"] }}</h6>
+        <h2 class="mb-0" id="inProgressCount">0</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white">
+    <h5 class="mb-0"><i class="bi bi-list-task"></i> {{ _["all_projects"] }}</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="projectTable">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>{{ _["project_name"] }}</th>
+            <th>{{ _["customer_name"] }}</th>
+            <th>{{ _["status"] }}</th>
+            <th>{{ _["created"] }}</th>
+            <th>{{ _["actions"] }}</th>
+          </tr>
+        </thead>
+        <tbody id="projectTableBody">
+          <tr id="noProjectsRow">
+            <td colspan="6" class="text-center text-muted py-4">
+              <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
+              {{ _["no_projects"] }}
+              <a href="/projects/new">{{ _["create_first"] }}</a>.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUS_BADGES = {
+  draft: '<span class="badge bg-secondary">Draft</span>',
+  pdf_uploaded: '<span class="badge bg-info text-dark">PDF Uploaded</span>',
+  gsa_uploaded: '<span class="badge bg-primary">GSA Uploaded</span>',
+  calculated: '<span class="badge bg-warning text-dark">Calculated</span>',
+  completed: '<span class="badge bg-success">Completed</span>',
+};
+const COL_STATUS = {
+  draft: "{{ _['dashboard'] }}",
+  pdf_uploaded: "PDF",
+  gsa_uploaded: "GSA",
+  calculated: "{{ _['financial_calc'] }}",
+  completed: "{{ _['completed'] }}",
+};
+
+async function loadProjects() {
+  const resp = await fetch("/api/projects");
+  const projects = await resp.json();
+  const tbody = document.getElementById("projectTableBody");
+  const noRow = document.getElementById("noProjectsRow");
+
+  if (projects.length === 0) {
+    noRow.style.display = "";
+    return;
+  }
+  noRow.style.display = "none";
+
+  document.getElementById("totalCount").textContent = projects.length;
+  document.getElementById("completedCount").textContent =
+    projects.filter((p) => p.status === "completed").length;
+  document.getElementById("inProgressCount").textContent =
+    projects.filter((p) => p.status !== "completed").length;
+
+  tbody.innerHTML = projects
+    .map(
+      (p) => `
+    <tr>
+      <td>${p.id}</td>
+      <td><a href="/projects/${p.id}" class="fw-semibold text-decoration-none">${p.name}</a></td>
+      <td>${p.customer_name || "-"}</td>
+      <td>${STATUS_BADGES[p.status] || STATUS_BADGES.draft}</td>
+      <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : "-"}</td>
+      <td>
+        <a href="/projects/${p.id}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteProject(${p.id})"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`
+    )
+    .join("");
+}
+
+async function deleteProject(id) {
+  if (!confirm("Delete?")) return;
+  const resp = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  if (resp.ok) {
+    loadProjects();
+  } else {
+    const err = await resp.json();
+    alert("Delete failed: " + (err.error || "Error"));
+  }
+}
+
+loadProjects();
+</script>
+{% endblock %}

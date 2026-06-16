@@ -1,0 +1,582 @@
+﻿{% extends "base.html" %}
+{% block title %}Project - {{ _["app_title"] }}{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{{ _["dashboard"] }}</a></li>
+        <li class="breadcrumb-item active" id="projectBreadcrumb">Project</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<!-- Project Header -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4 class="mb-1" id="projectName">Loading...</h4>
+        <p class="text-muted mb-0" id="projectCustomer"></p>
+      </div>
+      <div>
+        <span id="projectStatus" class="badge fs-6"></span>
+      </div>
+    </div>
+    <div class="row mt-3 small text-muted" id="projectGeo" style="display:none;">
+      <div class="col-md-4"><strong>{{ _["latitude"] }}:</strong> <span id="pLat"></span></div>
+      <div class="col-md-4"><strong>{{ _["longitude"] }}:</strong> <span id="pLng"></span></div>
+      <div class="col-md-4"><strong>{{ _["address"] }}:</strong> <span id="pAddr"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="row g-3">
+
+  <!-- ==================== Step 1: Project Info ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">1</span> {{ _["project_info"] }}</h6>
+          <i class="bi bi-check-circle-fill text-success" id="step1Icon"></i>
+        </div>
+        <div id="step1Details" class="small mt-1">
+          <p class="text-muted mb-0">{{ _["project_name"] }} + {{ _["google_maps_link_label"] }}.</p>
+        </div>
+        <div id="step1Summary" style="display:none;" class="mt-1 small">
+          <table class="table table-sm table-borderless mb-1">
+            <tr><td class="fw-semibold text-nowrap p-0 pe-2" style="width:65px;">{{ _["project_name_label"] }}</td><td class="p-0 text-truncate" id="s1Name"></td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["customer_name_label"] }}</td><td class="p-0 text-truncate" id="s1Customer"></td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["latitude"] }}</td><td class="p-0 text-truncate" id="s1Lat"></td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["longitude"] }}</td><td class="p-0 text-truncate" id="s1Lng"></td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["address"] }}</td><td class="p-0 text-truncate" id="s1Addr"></td></tr>
+          </table>
+          <a href="#" class="text-decoration-none small" onclick="event.preventDefault();showEditProject()">
+            <i class="bi bi-pencil"></i> {{ _["edit"] if _["edit"] is defined else "Edit" }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Step 2: OpenSolar PDF ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">2</span> {{ _["opensolar_pdf"] }}</h6>
+          <i class="bi bi-circle text-secondary" id="step2Icon"></i>
+        </div>
+        <p class="small text-muted">{{ _["opensolar_pdf"] }}...</p>
+        <div id="step2Content">
+          <form id="pdfUploadForm">
+            <div class="mb-2">
+              <input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+          </form>
+        </div>
+        <div id="step2Done" style="display:none;">
+          <div class="border-0 p-0 small">
+            <table class="table table-sm table-borderless mb-1">
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. {{ _["system_capacity"] }}</td><td class="p-0"><span id="pdfCapacity" class="text-success"></span></td></tr>
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] if _["module_count"] is defined else "Module Qty" }}</td><td class="p-0"><span id="pdfModuleQty" class="text-success"></span></td></tr>
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] if _["module_model"] is defined else "Module Model" }}</td><td class="p-0"><span id="pdfModuleModel" class="text-success"></span></td></tr>
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] if _["inv_count"] is defined else "Inverter Qty" }}</td><td class="p-0"><span id="pdfInvQty" class="text-success"></span></td></tr>
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] if _["inv_model"] is defined else "Inverter Model" }}</td><td class="p-0"><span id="pdfInvModel" class="text-success"></span></td></tr>
+              <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. {{ _["co2_reduction"] }}</td><td class="p-0"><span id="pdfCO2" class="text-success"></span></td></tr>
+            </table>
+            <a href="#" class="text-decoration-none small" onclick="event.preventDefault();showReplace(&#39;pdf&#39;)"><i class="bi bi-arrow-repeat"></i> Replace</a>
+          </div>
+        </div>
+        <div id="step2Progress" class="mt-2" style="display:none;">
+          <div class="progress" style="height:6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+          </div>
+          <small class="text-muted">Parsing PDF...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Step 3: GSA Solar Data ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">3</span> {{ _["gsa_solar_data"] }}</h6>
+          <i class="bi bi-circle text-secondary" id="step3Icon"></i>
+        </div>
+        <p class="small text-muted">{{ _["gsa_solar_data"] }}...</p>
+        <div id="step3Content">
+          <form id="gsaUploadForm">
+            <div class="mb-2">
+              <input type="file" class="form-control form-control-sm" id="gsaFile" accept=".xlsx">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+          </form>
+        </div>
+        <div id="step3Done" style="display:none;">
+          <div class="alert alert-success py-1 small">
+            <i class="bi bi-check-circle-fill"></i> GSA {{ _["completed"]|lower }}
+            <a href="#" class="ms-2 small" onclick="event.preventDefault();showReplace(&#39;gsa&#39;)">Replace</a>
+          </div>
+        </div>
+        <div id="step3Progress" class="mt-2" style="display:none;">
+          <div class="progress" style="height:6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+          </div>
+          <small class="text-muted">Parsing GSA...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Step 4: Financial Calculation ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-warning text-dark me-1">4</span> {{ _["financial_calc"] }}</h6>
+          <i class="bi bi-circle text-secondary" id="step4Icon"></i>
+        </div>
+        <p class="small text-muted">{{ _["financial_calc"] }}...</p>
+        <button class="btn btn-sm btn-warning" id="calcBtn" disabled onclick="runCalculation()">
+          <i class="bi bi-calculator"></i> {{ _["run_calculation"] }}
+        </button>
+        <div id="step4Done" style="display:none;" class="mt-2">
+          <div class="alert alert-success py-1 small">
+            <i class="bi bi-check-circle-fill"></i> {{ _["financial_calc"] }} {{ _["completed"]|lower }}
+          </div>
+          <div id="calcResults" class="small"></div>
+        </div>
+        <div id="step4Progress" class="mt-2" style="display:none;">
+          <div class="progress" style="height:6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width:100%"></div>
+          </div>
+          <small class="text-muted">{{ _["financial_calc"] }}...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Step 5: Generate PPT ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">5</span> {{ _["generate_ppt"] }}</h6>
+          <i class="bi bi-circle text-secondary" id="step5Icon"></i>
+        </div>
+        <p class="small text-muted">{{ _["generate_ppt"] }}...</p>
+        <button class="btn btn-sm btn-success" id="pptBtn" disabled onclick="generatePPT()">
+          <i class="bi bi-file-ppt"></i> {{ _["generate_proposal"] }}
+        </button>
+        <div id="step5Done" style="display:none;" class="mt-2">
+          <div class="alert alert-success py-1 small">
+            <i class="bi bi-check-circle-fill"></i> {{ _["generate_ppt"] }} {{ _["completed"]|lower }}
+          </div>
+          <a id="downloadLink" class="btn btn-sm btn-outline-success mt-1" href="#">
+            <i class="bi bi-download"></i> {{ _["download_ppt"] }}
+          </a>
+        </div>
+        <div id="step5Progress" class="mt-2" style="display:none;">
+          <div class="progress" style="height:6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width:100%"></div>
+          </div>
+          <small class="text-muted">{{ _["generate_ppt"] }}...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Data Summary ==================== -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="card-title"><i class="bi bi-bar-chart"></i> {{ _["data_summary"] }}</h6>
+        <div id="dataSummary" class="small text-muted">
+          {{ _["no_data"] }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil"></i> {{ _["edit_project"] if _["edit_project"] is defined else "Edit Project" }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editProjectForm">
+          <div class="mb-3">
+            <label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["customer_name_label"] }}</label>
+            <input type="text" class="form-control" id="editCustomer">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["google_maps_link_label"] }}</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="editMapsLink" placeholder="{{ _['google_maps_placeholder'] }}">
+              <button class="btn btn-outline-success" type="button" id="editMapsJumpBtn" title="{{ _['click_to_open_maps'] }}" disabled>
+                <i class="bi bi-geo-alt-fill"></i>
+              </button>
+            </div>
+            <div class="form-text">{{ _["google_maps_help"] }}</div>
+          </div>
+          <div class="mb-3" id="editGeoPreview" style="display:none;">
+            <div class="alert alert-success border-success py-2">
+              <i class="bi bi-check-circle-fill text-success me-1"></i>
+              <strong>{{ _["parse_success"] }}!</strong>
+              <table class="table table-sm table-borderless mb-0 small mt-1">
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["latitude"] }}:</td><td class="p-0"><code id="editLatPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["longitude"] }}:</td><td class="p-0"><code id="editLngPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["address"] }}:</td><td class="p-0"><span id="editAddrPreview" class="text-success"></span></td></tr>
+              </table>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</button>
+        <button type="button" class="btn btn-primary" onclick="saveEditProject()"><i class="bi bi-check-lg"></i> {{ _["save"] if _["save"] is defined else "Save" }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === MINIMAL STARTUP TEST ===
+// Error display for debugging
+window.onerror = function(msg, url, line, col, err) {
+  var d = document.createElement("div");
+  d.style.cssText = "position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;padding:12px;z-index:9999;font-size:14px";
+  d.textContent = "JS Error: " + msg + " (line " + line + ")";
+  document.body.prepend(d);
+};
+
+try {
+
+const STATUS_BADGES = {
+  draft: '<span class="badge bg-secondary">Draft</span>',
+  pdf_uploaded: '<span class="badge bg-info text-dark">PDF {{ _["completed"] }}</span>',
+  gsa_uploaded: '<span class="badge bg-primary">GSA {{ _["completed"] }}</span>',
+  calculated: '<span class="badge bg-warning text-dark">{{ _["financial_calc"] }}</span>',
+  completed: '<span class="badge bg-success">{{ _["completed"] }}</span>',
+};
+
+const projectId = {{ project_id }};
+let projectData = {};
+
+function setStep(step, done) {
+  const icon = document.getElementById("step" + step + "Icon");
+  if (icon) {
+    icon.className = done ? "bi bi-check-circle-fill text-success" : "bi bi-circle text-secondary";
+  }
+}
+
+// --- Edit Project ---
+function showEditProject() {
+  const data = projectData;
+  document.getElementById("editName").value = data.name || "";
+  document.getElementById("editCustomer").value = data.customer_name || "";
+  document.getElementById("editMapsLink").value = data.google_maps_link || "";
+  document.getElementById("editGeoPreview").style.display = "none";
+  if (data.latitude) {
+    document.getElementById("editLatPreview").textContent = data.latitude;
+    document.getElementById("editLngPreview").textContent = data.longitude;
+    document.getElementById("editAddrPreview").textContent = data.address || "";
+    document.getElementById("editMapsJumpBtn").disabled = false;
+    document.getElementById("editMapsJumpBtn").onclick = function() {
+      window.open("https://www.google.com/maps?q=" + data.latitude + "," + data.longitude, "_blank");
+    };
+  } else {
+    document.getElementById("editMapsJumpBtn").disabled = true;
+  }
+  new bootstrap.Modal(document.getElementById("editProjectModal")).show();
+}
+
+async function saveEditProject() {
+  const name = document.getElementById("editName").value.trim();
+  if (!name) { alert("Project name is required."); return; }
+  const data = {
+    name: name,
+    customer_name: document.getElementById("editCustomer").value.trim(),
+    google_maps_link: document.getElementById("editMapsLink").value.trim(),
+  };
+  const resp = await fetch("/api/projects/" + projectId, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (resp.ok) {
+    bootstrap.Modal.getInstance(document.getElementById("editProjectModal")).hide();
+    await loadProject();
+  } else {
+    const err = await resp.json();
+    alert("Error: " + (err.error || "Save failed"));
+  }
+}
+
+// Edit modal maps link parsing
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("editMapsLink")?.addEventListener("input", function() {
+    const url = this.value.trim();
+    const preview = document.getElementById("editGeoPreview");
+    const latEl = document.getElementById("editLatPreview");
+    const lngEl = document.getElementById("editLngPreview");
+    const addrEl = document.getElementById("editAddrPreview");
+    const btn = document.getElementById("editMapsJumpBtn");
+    if (!url) { preview.style.display = "none"; btn.disabled = true; return; }
+    const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || url.match(/\/search\/(-?\d+\.\d+),\+?(-?\d+\.\d+)/);
+    if (m) {
+      const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+      latEl.textContent = lat.toFixed(6);
+      lngEl.textContent = lng.toFixed(6);
+      addrEl.textContent = "{{ _['paste_hint'] }}";
+      btn.disabled = false;
+      btn.onclick = function() { window.open("https://www.google.com/maps?q=" + lat + "," + lng, "_blank"); };
+      preview.style.display = "block";
+      fetch("https://nominatim.openstreetmap.org/reverse?lat=" + lat + "&lon=" + lng + "&format=json&accept-language={{ current_lang }}",
+        { headers: { "User-Agent": "SolarProposalPlatform/1.0" } })
+        .then(r => r.json()).then(d => { if (d && d.display_name) addrEl.textContent = d.display_name; }).catch(function(){});
+    } else {
+      preview.style.display = "none"; btn.disabled = true;
+    }
+  });
+});
+
+// Allow re-upload
+function showReplace(type) {
+  if (type === "pdf") {
+    document.getElementById("step2Content").style.display = "";
+    document.getElementById("step2Done").style.display = "none";
+  } else if (type === "gsa") {
+    document.getElementById("step3Content").style.display = "";
+    document.getElementById("step3Done").style.display = "none";
+  }
+}
+
+function updateUI(data) {
+  projectData = data;
+  document.getElementById("projectBreadcrumb").textContent = data.name || "Project";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectName").textContent = data.name || "Untitled";
+  document.getElementById("projectCustomer").textContent = data.customer_name || "";
+  document.getElementById("projectStatus").innerHTML = STATUS_BADGES[data.status] || STATUS_BADGES.draft;
+
+  if (data.latitude) {
+    document.getElementById("projectGeo").style.display = "flex";
+    document.getElementById("pLat").textContent = data.latitude;
+    document.getElementById("pLng").textContent = data.longitude;
+    document.getElementById("pAddr").textContent = data.address || "-";
+  }
+
+  // Step 1 summary
+  const s1Summary = document.getElementById("step1Summary");
+  const s1Details = document.getElementById("step1Details");
+  if (data.name) {
+    s1Details.style.display = "none";
+    s1Summary.style.display = "";
+    document.getElementById("s1Name").textContent = data.name;
+    document.getElementById("s1Customer").textContent = data.customer_name || "-";
+    document.getElementById("s1Lat").textContent = data.latitude ? data.latitude.toFixed(6) : "-";
+    document.getElementById("s1Lng").textContent = data.longitude ? data.longitude.toFixed(6) : "-";
+    document.getElementById("s1Addr").textContent = data.address || "-";
+  } else {
+    s1Summary.style.display = "none";
+    s1Details.style.display = "";
+  }
+
+  const status = data.status || "draft";
+  setStep(1, true);
+  setStep(2, status !== "draft");
+  setStep(3, status === "gsa_uploaded" || status === "calculated" || status === "completed");
+  setStep(4, status === "calculated" || status === "completed");
+  setStep(5, status === "completed");
+
+  // Step 2 - PDF
+  const pdfForm = document.getElementById("step2Content");
+  const pdfDone = document.getElementById("step2Done");
+  if (status !== "draft") {
+    pdfForm.style.display = "none";
+    pdfDone.style.display = "";
+    if (data.pv_system) {
+      const modules = data.modules && data.modules.length > 0 ? data.modules[0] : null;
+      const invs = data.inverters && data.inverters.length > 0 ? data.inverters[0] : null;
+      document.getElementById("pdfCapacity").textContent = data.pv_system.capacity_kwp ? data.pv_system.capacity_kwp + " kWp" : "-";
+      document.getElementById("pdfModuleQty").textContent = modules ? modules.quantity + " pcs" : "-";
+      document.getElementById("pdfModuleModel").textContent = modules ? (modules.brand + " " + modules.model) : "-";
+      document.getElementById("pdfInvQty").textContent = invs ? invs.quantity : "-";
+      document.getElementById("pdfInvModel").textContent = invs ? (invs.brand + " " + invs.model) : "-";
+      document.getElementById("pdfCO2").textContent = data.pv_system.co2_reduction_tons ? data.pv_system.co2_reduction_tons + " t/yr" : "-";
+    } else {
+      ["pdfCapacity","pdfModuleQty","pdfModuleModel","pdfInvQty","pdfInvModel","pdfCO2"].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.textContent = "-";
+      });
+    }
+  } else {
+    pdfForm.style.display = "";
+    pdfDone.style.display = "none";
+  }
+
+  // Step 3 - GSA
+  const gsaForm = document.getElementById("step3Content");
+  const gsaDone = document.getElementById("step3Done");
+  if (status === "gsa_uploaded" || status === "calculated" || status === "completed") {
+    gsaForm.style.display = "none";
+    gsaDone.style.display = "";
+  } else {
+    gsaForm.style.display = "";
+    gsaDone.style.display = "none";
+  }
+
+  // Buttons
+  document.getElementById("calcBtn").disabled = !(status === "gsa_uploaded" || status === "calculated" || status === "completed");
+  document.getElementById("pptBtn").disabled = !(status === "calculated" || status === "completed");
+
+  // Step 5 - PPT download
+  if (status === "completed" && data.financial_results && data.financial_results.length > 0) {
+    document.getElementById("step5Done").style.display = "";
+    document.getElementById("downloadLink").href = "/api/projects/" + projectId + "/download-ppt";
+  } else {
+    document.getElementById("step5Done").style.display = "none";
+  }
+
+  updateSummary(data);
+}
+
+function updateSummary(data) {
+  const el = document.getElementById("dataSummary");
+  let html = "<dl class='row small mb-0'>";
+  if (data.pv_system) {
+    const pv = data.pv_system;
+    html += "<dt class='col-5'>{{ _['system_capacity'] }}</dt><dd class='col-7'>" + (pv.capacity_kwp || "-") + " kWp</dd>";
+    html += "<dt class='col-5'>{{ _['annual_gen'] }}</dt><dd class='col-7'>" + (pv.annual_generation_kwh ? (pv.annual_generation_kwh/1000).toFixed(1) : "-") + " MWh/yr</dd>";
+    html += "<dt class='col-5'>{{ _['co2_reduction'] }}</dt><dd class='col-7'>" + (pv.co2_reduction_tons || "-") + " t/yr</dd>";
+  }
+  if (data.solar_resource) {
+    const sr = data.solar_resource;
+    html += "<dt class='col-5'>{{ _['ghi'] }}</dt><dd class='col-7'>" + (sr.ghi_kwhm2 || "-") + " kWh/m虏</dd>";
+    html += "<dt class='col-5'>{{ _['flh'] }}</dt><dd class='col-7'>" + (sr.pvspecific_kwh_kwp || "-") + " h/yr</dd>";
+  }
+  if (data.financial_results && data.financial_results.length > 0) {
+    const fr = data.financial_results[0];
+    html += "<dt class='col-5'>{{ _['capex'] }}</dt><dd class='col-7'>鈧?" + (fr.total_investment_php ? fr.total_investment_php.toLocaleString() : "-") + "</dd>";
+    html += "<dt class='col-5'>{{ _['payback'] }}</dt><dd class='col-7'>" + (fr.payback_period_years || "-") + " yr</dd>";
+    html += "<dt class='col-5'>{{ _['year1_revenue'] }}</dt><dd class='col-7'>鈧?" + (fr.year1_revenue_php ? fr.year1_revenue_php.toLocaleString() : "-") + "</dd>";
+    html += "<dt class='col-5'>{{ _['irr'] }}</dt><dd class='col-7'>" + (fr.irr ? (fr.irr*100).toFixed(2) + "%" : "-") + "</dd>";
+  }
+  html += "</dl>";
+  el.innerHTML = html || "{{ _['no_data'] }}";
+}
+
+// PDF Upload
+document.getElementById("pdfUploadForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const file = document.getElementById("pdfFile").files[0];
+  if (!file) { alert("Select PDF."); return; }
+  const formData = new FormData();
+  formData.append("file", file);
+  document.getElementById("step2Content").style.display = "none";
+  document.getElementById("step2Progress").style.display = "";
+  try {
+    const resp = await fetch("/api/projects/" + projectId + "/upload/pdf", { method: "POST", body: formData });
+    if (resp.ok) { await loadProject(); }
+    else { const err = await resp.json(); alert("Error: " + (err.error || "Parse failed")); document.getElementById("step2Content").style.display = ""; }
+  } catch (err) { alert("Upload failed"); document.getElementById("step2Content").style.display = ""; }
+  document.getElementById("step2Progress").style.display = "none";
+});
+
+// GSA Upload
+document.getElementById("gsaUploadForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const file = document.getElementById("gsaFile").files[0];
+  if (!file) { alert("Select Excel."); return; }
+  const formData = new FormData();
+  formData.append("file", file);
+  document.getElementById("step3Content").style.display = "none";
+  document.getElementById("step3Progress").style.display = "";
+  try {
+    const resp = await fetch("/api/projects/" + projectId + "/upload/gsa", { method: "POST", body: formData });
+    if (resp.ok) { await loadProject(); }
+    else { const err = await resp.json(); alert("Error: " + (err.error || "Parse failed")); document.getElementById("step3Content").style.display = ""; }
+  } catch (err) { alert("Upload failed"); document.getElementById("step3Content").style.display = ""; }
+  document.getElementById("step3Progress").style.display = "none";
+});
+
+// Calculate
+async function runCalculation() {
+  document.getElementById("step4Progress").style.display = "";
+  try {
+    const resp = await fetch("/api/projects/" + projectId + "/calculate", { method: "POST" });
+    if (resp.ok) {
+      const data = await resp.json();
+      const resultsDiv = document.getElementById("calcResults");
+      if (data.results) {
+        const r = data.results[0];
+        resultsDiv.innerHTML = "<div class="mt-2 p-2 bg-light rounded small"><strong>{{ _['capex'] }}:</strong> 鈧?" + (r.total_investment_php?.toLocaleString() || "-") + "<br><strong>{{ _['year1_revenue'] }}:</strong> 鈧?" + (r.year1_revenue_php?.toLocaleString() || "-") + "<br><strong>{{ _['payback'] }}:</strong> " + (r.payback_period_years || "-") + " yr<br><strong>{{ _['irr'] }}:</strong> " + (r.irr ? (r.irr*100).toFixed(2) + "%" : "-") + "</div>";
+      }
+      await loadProject();
+    } else { const err = await resp.json(); alert("Error: " + (err.error || "Calculation failed")); }
+  } catch (err) { alert("Calculation failed"); }
+  document.getElementById("step4Progress").style.display = "none";
+}
+
+// Generate PPT
+async function generatePPT() {
+  document.getElementById("step5Progress").style.display = "";
+  try {
+    const resp = await fetch("/api/projects/" + projectId + "/generate-ppt", { method: "POST" });
+    if (resp.ok) { await loadProject(); }
+    else { const err = await resp.json(); alert("Error: " + (err.error || "Generation failed")); }
+  } catch (err) { alert("Generation failed"); }
+  document.getElementById("step5Progress").style.display = "none";
+}
+
+async function loadProject() {
+  try {
+    const resp = await fetch("/api/projects/" + projectId);
+    const data = await resp.json();
+    updateUI(data);
+  } catch (err) {
+    console.error("Failed to load project:", err);
+  }
+}
+
+loadProject();
+
+} catch (e) {
+  var d = document.createElement("div");
+  d.style.cssText = "position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;padding:20px;z-index:9999;font-size:16px;white-space:pre-wrap";
+  d.textContent = "SCRIPT ERROR: " + e.message + "\n" + e.stack;
+  document.body.prepend(d);
+}
+</script>
+{% endblock %}
+
