@@ -38,6 +38,43 @@
   </div>
 </div>
 
+<!-- Solar System Config Card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-sun"></i> Solar System</h6>
+      <a class="btn btn-success btn-sm" id="gsaOpenBtn" href="#" target="_blank"
+         onclick="var lat={% if pd and pd.latitude %}{{ pd.latitude }}{% else %}null{% endif %},lng={% if pd and pd.longitude %}{{ pd.longitude }}{% else %}null{% endif %};if(!lat||!lng){alert('Need coords');return false}var cap=document.getElementById('gsaCapacity').value||0,az=document.getElementById('gsaAzimuth').value||180,tilt=document.getElementById('gsaTilt').value||15,typ=document.getElementById('gsaType').value||'medium';this.href='https://globalsolaratlas.info/map?s='+lat+','+lng+',10&pv='+typ+','+az+','+tilt+','+cap;return true">
+        <i class="bi bi-globe"></i> Open GSA
+      </a>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <label class="form-label small">Capacity (kWp)</label>
+        <input type="number" step="0.01" class="form-control form-control-sm" id="gsaCapacity"
+               value="{% if pd and pd.pv_system %}{{ pd.pv_system.capacity_kwp }}{% endif %}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Azimuth (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaAzimuth" value="180">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Tilt (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaTilt" value="15">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Type</label>
+        <select class="form-select form-select-sm" id="gsaType">
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+          <option value="small">Small</option>
+          <option value="residential">Residential</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Workflow Steps -->
 <div class="row g-3">
 
@@ -47,7 +84,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <h6 class="card-title"><span class="badge bg-success me-1">1</span> {{ _["project_info"] }}</h6>
-          <i class="bi bi-check-circle-fill text-success"></i>
+          <i class="bi {% if pd %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
         </div>
         {% if pd %}
         <table class="table table-sm table-borderless mb-1 small">
@@ -77,35 +114,29 @@
         <div class="small">
           <table class="table table-sm table-borderless mb-1">
             <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. {{ _["system_capacity"] }}</td><td class="p-0 text-success">{{ pd.pv_system.capacity_kwp }} kWp</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] if _["module_count"] is defined else "Module Qty" }}</td><td class="p-0 text-success">{{ pd.module.quantity }} pcs</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] if _["module_model"] is defined else "Module Model" }}</td><td class="p-0 text-success">{{ pd.module.brand }} {{ pd.module.model }}</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] if _["inv_count"] is defined else "Inverter Qty" }}</td><td class="p-0 text-success">{{ pd.inverter.quantity }}</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] if _["inv_model"] is defined else "Inverter Model" }}</td><td class="p-0 text-success">{{ pd.inverter.brand }} {{ pd.inverter.model }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] }}</td><td class="p-0 text-success">{{ pd.module.quantity if pd.module else "-" }} pcs</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] }}</td><td class="p-0 text-success">{{ pd.module.brand if pd.module else "" }} {{ pd.module.model if pd.module else "-" }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] }}</td><td class="p-0 text-success">{{ pd.inverter.quantity if pd.inverter else "-" }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] }}</td><td class="p-0 text-success">{{ pd.inverter.brand if pd.inverter else "" }} {{ pd.inverter.model if pd.inverter else "-" }}</td></tr>
             <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. {{ _["co2_reduction"] }}</td><td class="p-0 text-success">{{ pd.pv_system.co2_reduction_tons }} t/yr</td></tr>
           </table>
-          <a href="#" class="text-decoration-none small" onclick="document.getElementById('step2Content').style.display=''"><i class="bi bi-arrow-repeat"></i> Replace</a>
-        </div>
-        <div id="step2Content" style="display:none">
-          <form onsubmit="return uploadPdf(this)">
-            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
-            <div id="step2Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
-          </form>
-        </div>
-        {% else %}
-        <div id="step2Content">
-          <form onsubmit="return uploadPdf(this)">
-            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
-            <div id="step2Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
-          </form>
+          <a href="#" class="text-decoration-none small" onclick="togglePdfUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
         </div>
         {% endif %}
+        <div id="step2Upload" class="mt-2" style="{% if pd and pd.pv_system %}display:none{% endif %}">
+          <form onsubmit="return uploadPdf(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <div id="step2Progress" class="mt-2 small" style="display:none">
+              <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 3: GSA -->
+  <!-- Step 3: GSA Solar Data -->
   <div class="col-lg-4 col-md-6">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
@@ -114,13 +145,27 @@
           <i class="bi {% if pd and pd.solar %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
         </div>
         {% if pd and pd.solar %}
-        <div class="small">{{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m²<br>{{ _["flh"] }}: {{ pd.solar.flh }} h/yr</div>
+        <div class="small">
+          <div class="fw-semibold">{{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m&sup2;</div>
+          {% if pd.monthly %}
+          <div class="d-flex flex-wrap mt-1">
+            {% for m in pd.monthly %}
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              {% if m.m < 10 %}0{% endif %}{{ m.m }}{{ "月" if _._current_lang == "zh" else "/" }} {{ m.v }} kWh/{{ "天" if _._current_lang == "zh" else "day" }}
+            </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <a href="#" class="text-decoration-none small" onclick="toggleGsaUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
+        </div>
         {% endif %}
-        <div id="step3Content" style="{% if pd and pd.solar %}display:none{% endif %}">
+        <div id="step3Upload" class="mt-2" style="{% if pd and pd.solar %}display:none{% endif %}">
           <form onsubmit="return uploadGsa(this)">
             <div class="mb-2"><input type="file" class="form-control form-control-sm" id="gsaFile" accept=".xlsx"></div>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</a>
-            <div id="step3Progress" class="mt-2 small" style="display:none"><div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <div id="step3Progress" class="mt-2 small" style="display:none">
+              <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+            </div>
           </form>
         </div>
       </div>
@@ -135,11 +180,11 @@
           <h6 class="card-title"><span class="badge bg-warning text-dark me-1">4</span> {{ _["financial_calc"] }}</h6>
           <i class="bi {% if pd and pd.finance %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
         </div>
-        <button class="btn btn-sm btn-warning" id="calcBtn" onclick="runCalc()" {% if not pd or not pd.solar %}disabled{% endif %}><i class="bi bi-calculator"></i> {{ _["run_calculation"] }}</a>
+        <button class="btn btn-sm btn-warning" id="calcBtn" onclick="runCalc()" {% if not pd or not pd.solar %}disabled{% endif %}><i class="bi bi-calculator"></i> {{ _["run_calculation"] }}</button>
         {% if pd and pd.finance %}
         <div class="small mt-2 p-2 bg-light rounded">
-          {{ _["capex"] }}: ₱ {{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
-          {{ _["year1_revenue"] }}: ₱ {{ "{:,.0f}".format(pd.finance.revenue) if pd.finance.revenue else "-" }}<br>
+          {{ _["capex"] }}: &#8369;{{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
+          {{ _["year1_revenue"] }}: &#8369;{{ "{:,.0f}".format(pd.finance.revenue) if pd.finance.revenue else "-" }}<br>
           {{ _["payback"] }}: {{ pd.finance.payback }}{% if pd.finance.payback %} yr{% endif %}<br>
           {{ _["irr"] }}: {{ "{:.2f}%".format(pd.finance.irr*100) if pd.finance.irr else "-" }}
         </div>
@@ -156,7 +201,7 @@
           <h6 class="card-title"><span class="badge bg-success me-1">5</span> {{ _["generate_ppt"] }}</h6>
           <i class="bi {% if pd and pd.status=='completed' %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
         </div>
-        <button class="btn btn-sm btn-success" onclick="genPpt()" {% if not pd or not pd.finance %}disabled{% endif %}><i class="bi bi-file-ppt"></i> {{ _["generate_proposal"] }}</a>
+        <button class="btn btn-sm btn-success" onclick="genPpt()" {% if not pd or not pd.finance %}disabled{% endif %}><i class="bi bi-file-ppt"></i> {{ _["generate_proposal"] }}</button>
         {% if pd and pd.status=='completed' %}
         <div class="mt-2"><a href="/api/projects/{{ pd.id }}/download-ppt" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> {{ _["download_ppt"] }}</a></div>
         {% endif %}
@@ -172,19 +217,20 @@
         <div class="small text-muted">
           {% if pd and pd.pv_system %}
           {{ _["system_capacity"] }}: {{ pd.pv_system.capacity_kwp }} kWp<br>
-          {{ _["annual_gen"] }}: {{ "{:,.0f}".format(pd.pv_system.annual_generation_kwh/1000) }}{% if pd.pv_system.annual_generation_kwh %} MWh/yr{% endif %}<br>
+          {{ _["annual_gen"] }}: {{ "{:,.0f}".format(pd.pv_system.annual_generation_kwh/1000) if pd.pv_system.annual_generation_kwh else "-" }} MWh/yr<br>
           {{ _["co2_reduction"] }}: {{ pd.pv_system.co2_reduction_tons }} t/yr<br>
           {% endif %}
           {% if pd and pd.solar %}
-          {{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m²<br>
-          {{ _["flh"] }}: {{ pd.solar.flh }} h/yr<br>
+          {{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m&sup2;<br>
           {% endif %}
           {% if pd and pd.finance %}
-          {{ _["capex"] }}: ₱ {{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
+          {{ _["capex"] }}: &#8369;{{ "{:,.0f}".format(pd.finance.capex) if pd.finance.capex else "-" }}<br>
           {{ _["payback"] }}: {{ pd.finance.payback or "-" }} yr<br>
           {{ _["irr"] }}: {{ "{:.2f}%".format(pd.finance.irr*100) if pd.finance.irr else "-" }}<br>
           {% endif %}
-          {% if not pd or not pd.pv_system %}{{ _["no_data"] }}{% endif %}
+          {% if not pd or not pd.pv_system %}
+          {{ _["no_data"] }}
+          {% endif %}
         </div>
       </div>
     </div>
@@ -195,7 +241,7 @@
 <div class="modal fade" id="editProjectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Project</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></a></div>
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> {{ _["edit_project"] }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <form id="editProjectForm" onsubmit="return saveEdit()">
           <div class="mb-3"><label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label><input type="text" class="form-control" id="editName" required></div>
@@ -203,8 +249,8 @@
           <div class="mb-3">
             <label class="form-label">{{ _["google_maps_link_label"] }}</label>
             <div class="input-group">
-              <input type="url" class="form-control" id="editMapsLink">
-              <a class="btn btn-outline-success" id="editMapsJumpBtn" href="#" target="_blank"  style="opacity:0.5"><i class="bi bi-geo-alt-fill"></i></a>
+              <input type="url" class="form-control" id="editMapsLink" autocomplete="off">
+              <a class="btn btn-outline-success" id="editMapsJumpBtn" href="javascript:void(0)" target="_blank" onclick="var d=_editData;if(d&&d.latitude){this.href='https://www.google.com/maps?q='+d.latitude+','+d.longitude;return true}alert('No coordinates');return false" style="opacity:0.5"><i class="bi bi-geo-alt-fill"></i></a>
             </div>
           </div>
           <div class="mb-3" id="editGeoPreview" style="display:none;">
@@ -221,8 +267,8 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</a>
-        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> {{ _["save"] }}</a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</button>
+        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> {{ _["save"] }}</button>
       </div>
     </div>
   </div>
@@ -231,8 +277,17 @@
 
 {% block scripts %}
 <script>
-// Embedded project data for instant edit
 var _editData = {% if pd %}{{ pd | tojson }}{% else %}null{% endif %};
+
+function togglePdfUpload() {
+  var el = document.getElementById("step2Upload");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function toggleGsaUpload() {
+  var el = document.getElementById("step3Upload");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
 
 function showEditProject() {
   try {
@@ -242,11 +297,9 @@ function showEditProject() {
     document.getElementById("editCustomer").value = d.customer_name || "";
     document.getElementById("editMapsLink").value = d.google_maps_link || "";
     var btn = document.getElementById("editMapsJumpBtn");
-    var latEl = document.getElementById("editLatPreview");
-    var lngEl = document.getElementById("editLngPreview");
-    if (d.latitude && latEl) {
-      latEl.textContent = d.latitude;
-      lngEl.textContent = d.longitude;
+    if (d.latitude) {
+      document.getElementById("editLatPreview").textContent = d.latitude;
+      document.getElementById("editLngPreview").textContent = d.longitude;
       var aEl = document.getElementById("editAddrPreview");
       if (aEl) aEl.textContent = d.address || "";
       btn.href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
@@ -262,14 +315,34 @@ function showEditProject() {
   }
 }
 
-document.getElementById("editMapsLink")?.addEventListener("input",function(){
-  var u=this.value.trim(),m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if(m){
-    document.getElementById("editLatPreview").textContent=parseFloat(m[1]).toFixed(6);
-    document.getElementById("editLngPreview").textContent=parseFloat(m[2]).toFixed(6);
-    document.getElementById("editGeoPreview").style.display="block";
-  } else {
-    document.getElementById("editGeoPreview").style.display="none";
+document.addEventListener("DOMContentLoaded", function() {
+  var mapsInput = document.getElementById("editMapsLink");
+  if (mapsInput) {
+    mapsInput.addEventListener("input", function() {
+      var u = this.value.trim();
+      var m = u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || u.match(/\/search\/(-?\d+\.\d+),\+?(-?\d+\.\d+)/);
+      if (m) {
+        var lat = parseFloat(m[1] || m[0]), lng = parseFloat(m[2] || m[1]);
+        document.getElementById("editLatPreview").textContent = lat.toFixed(6);
+        document.getElementById("editLngPreview").textContent = lng.toFixed(6);
+        document.getElementById("editGeoPreview").style.display = "block";
+        var g = new XMLHttpRequest();
+        g.open("GET", "https://nominatim.openstreetmap.org/reverse?lat=" + lat + "&lon=" + lng + "&format=json&accept-language=en", true);
+        g.onreadystatechange = function() {
+          if (g.readyState == 4 && g.status == 200) {
+            try {
+              var d = JSON.parse(g.responseText);
+              if (d && d.display_name) document.getElementById("editAddrPreview").textContent = d.display_name;
+            } catch(e) {}
+          }
+        };
+        g.send();
+        document.getElementById("editMapsJumpBtn").href = "https://www.google.com/maps?q=" + lat + "," + lng;
+        document.getElementById("editMapsJumpBtn").style.opacity = "1";
+      } else {
+        document.getElementById("editGeoPreview").style.display = "none";
+      }
+    });
   }
 });
 
@@ -279,8 +352,17 @@ function saveEdit() {
   var x = new XMLHttpRequest();
   x.open("PUT", "/api/projects/{{ pd.id if pd else 0 }}", true);
   x.setRequestHeader("Content-Type", "application/json");
-  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) { bootstrap.Modal.getInstance(document.getElementById("editProjectModal")).hide(); location.reload(); } };
-  x.send(JSON.stringify({name: name, customer_name: document.getElementById("editCustomer").value.trim(), google_maps_link: document.getElementById("editMapsLink").value.trim()}));
+  x.onreadystatechange = function() {
+    if (x.readyState == 4 && x.status == 200) {
+      bootstrap.Modal.getInstance(document.getElementById("editProjectModal")).hide();
+      location.reload();
+    }
+  };
+  x.send(JSON.stringify({
+    name: name,
+    customer_name: document.getElementById("editCustomer").value.trim(),
+    google_maps_link: document.getElementById("editMapsLink").value.trim()
+  }));
   return false;
 }
 
@@ -321,23 +403,27 @@ function uploadGsa(form) {
 }
 
 function runCalc() {
+  document.getElementById("calcBtn").disabled = true;
   var x = new XMLHttpRequest();
   x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/calculate", true);
-  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) location.reload(); else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Calc failed")); } catch(ex) { alert("Calc failed"); } } };
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("calcBtn").disabled = false;
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Calc failed")); } catch(ex) { alert("Calc failed"); } }
+    }
+  };
   x.send();
 }
 
 function genPpt() {
   var x = new XMLHttpRequest();
   x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/generate-ppt", true);
-  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) location.reload(); else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Gen failed")); } catch(ex) { alert("Gen failed"); } } };
+  x.onreadystatechange = function() {
+    if (x.readyState == 4 && x.status == 200) location.reload();
+    else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Gen failed")); } catch(ex) { alert("Gen failed"); } }
+  };
   x.send();
-}
-function openEditMaps(link) {
-  var d = _editData;
-  if (!d || !d.latitude) { alert("No coordinates. Add a Maps link in Edit first."); return false; }
-  link.href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
-  return true;
 }
 </script>
 {% endblock %}

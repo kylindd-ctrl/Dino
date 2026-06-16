@@ -17,8 +17,6 @@
             <label class="form-label">{{ _["customer_name_label"] }}</label>
             <input type="text" class="form-control" id="customer_name" placeholder="e.g., Fatima University">
           </div>
-          
-          </div>
           <div class="mb-3">
             <label class="form-label">{{ _["google_maps_link_label"] }}</label>
             <div class="input-group">
@@ -81,7 +79,8 @@ document.getElementById("projectForm").addEventListener("submit", function(e) {
       }
     }
   };
-  xhr.send(JSON.stringify({name: name, customer_name: document.getElementById("customer_name").value.trim()}));
+    var mapsLink = document.getElementById("google_maps_link").value.trim();
+  xhr.send(JSON.stringify({name: name, customer_name: document.getElementById("customer_name").value.trim(), google_maps_link: mapsLink}));
 });
 </script>
 {% endblock %}

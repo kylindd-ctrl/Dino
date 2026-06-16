@@ -30,7 +30,7 @@ def new_project():
 @main_bp.route("/projects/<int:project_id>")
 def project_detail(project_id):
     from app.models import Project, PVSystem, PVModule, Inverter
-    from app.models import SolarResource, FinancialResult
+    from app.models import SolarResource, FinancialResult, MonthlyGeneration
     project = Project.query.get(project_id)
     pd = None
     if project:
@@ -61,7 +61,11 @@ def project_detail(project_id):
             pd["inverter"] = {"quantity": i.quantity, "brand": i.brand, "model": i.model, "capacity_kw": i.capacity_kw}
         sr = project.solar_resource
         if sr:
-            pd["solar"] = {"ghi": sr.ghi_kwhm2, "flh": sr.pvspecific_kwh_kwp}
+            pd["solar"] = {"ghi": sr.ghi_kwhm2}
+        mg = MonthlyGeneration.query.filter_by(project_id=project.id).order_by(MonthlyGeneration.month).all()
+        if mg:
+            d=[31,28,31,30,31,30,31,31,30,31,30,31]
+            pd["monthly"] = [{"m": m.month, "v": round(m.pvtotal_kwh/d[m.month-1], 1) if m.pvtotal_kwh else 0} for m in mg]
         frs = FinancialResult.query.filter_by(project_id=project.id).all()
         if frs:
             fr = frs[0]

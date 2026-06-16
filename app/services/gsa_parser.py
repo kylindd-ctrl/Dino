@@ -1,4 +1,14 @@
 ﻿import pandas as pd
+def _sf(v):
+    if v is None: return None
+    if isinstance(v, (int, float)): return float(v)
+    try: return float(str(v).replace(",", "").replace(" ", ""))
+    except: return None
+def _sf(v):
+    if v is None: return None
+    if isinstance(v, (int, float)): return float(v)
+    try: return float(str(v).replace(',', '').replace(' ', ''))
+    except: return None
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,7 +25,7 @@ def parse_gsa_excel(filepath: str) -> dict:
         key = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
         val = row.iloc[2] if len(row) > 2 and pd.notna(row.iloc[2]) else None
         if key and val is not None:
-            map_data[key] = float(val) if isinstance(val, (int, float)) else str(val)
+            map_data[key] = _sf(val) if _sf(val) is not None else str(val)
 
     # --- Site_info sheet ---
     df_site = pd.read_excel(xls, sheet_name="Site_info", header=None)
@@ -102,9 +112,9 @@ def parse_gsa_excel(filepath: str) -> dict:
             if m_name in month_names:
                 monthly_list.append({
                     "month": month_names.index(m_name) + 1,
-                    "pvspecific_kwh_kwp": float(row.iloc[1]) if pd.notna(row.iloc[1]) else 0,
-                    "pvtotal_kwh": float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                    "dni_kwhm2": float(row.iloc[3]) if len(row) > 3 and pd.notna(row.iloc[3]) else 0,
+                    "pvspecific_kwh_kwp": _sf(row.iloc[1]) if pd.notna(row.iloc[1]) else 0,
+                    "pvtotal_kwh": _sf(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
+                    "dni_kwhm2": _sf(row.iloc[3]) if len(row) > 3 and pd.notna(row.iloc[3]) else 0,
                 })
 
     return {
