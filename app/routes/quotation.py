@@ -1,7 +1,6 @@
-from flask import Blueprint, request, jsonify
+﻿from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Project, PriceLibrary, QuoteItem, MonthlyGeneration
-from datetime import datetime
 
 quotation_bp = Blueprint("quotation", __name__)
 
@@ -62,7 +61,7 @@ def del_quote(pid, iid):
     db.session.commit()
     return jsonify({"ok": True})
 
-# Revenue
+# Revenue - GET (load data)
 @quotation_bp.route("/api/projects/<int:pid>/revenue", methods=["GET"])
 def get_revenue(pid):
     p = Project.query.get_or_404(pid)
@@ -84,21 +83,46 @@ def get_revenue(pid):
         months.append({"month": month, "daily_gen": dg, "working_days": wd, "revenue_php": rev})
     total = sum(x["revenue_php"] for x in months) * (p.revenue_discount or 0.9)
     return jsonify({"months": months, "discount": p.revenue_discount or 0.9, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
+
+# Revenue - PUT (save data) - THIS WAS THE MISSING ROUTE!
+@quotation_bp.route("/api/projects/<int:pid>/revenue", methods=["PUT"])
 def save_revenue(pid):
     p = Project.query.get_or_404(pid)
     data = request.get_json()
-    if "discount" in data: p.revenue_discount = float(data["discount"])
-    if "rate" in data: p.electricity_rate = float(data["rate"])
+    if "discount" in data:
+        p.revenue_discount = float(data["discount"])
+    if "rate" in data:
+        p.electricity_rate = float(data["rate"])
     if "working_days" in data:
         days_list = [31,28,31,30,31,30,31,31,30,31,30,31]
         for idx, wd in enumerate(data["working_days"], 1):
             mg = MonthlyGeneration.query.filter_by(project_id=pid, month=idx).first()
             if mg:
-                mg.revenue_php = round(int(wd) * (mg.pvtotal_kwh or 0) * (p.electricity_rate or 13) / days_list[idx-1], 2) if int(wd) and mg.pvtotal_kwh else 0
+                rev = round(int(wd) * (mg.pvtotal_kwh or 0) * (p.electricity_rate or 13) / days_list[idx-1], 2) if int(wd) and mg.pvtotal_kwh else 0
+                mg.revenue_php = rev
     total_rev = sum(mg.revenue_php or 0 for mg in MonthlyGeneration.query.filter_by(project_id=pid).all()) * (p.revenue_discount or 0.9)
     p.total_revenue_php = round(total_rev, 2)
     db.session.commit()
     return jsonify({"ok": True, "total_revenue": p.total_revenue_php})
+
+# Fetch exchange rate (using exchangerate.host free API)
+@quotation_bp.route("/api/projects/<int:pid>/fetch-rate", methods=["GET"])
+def fetch_rate(pid):
+    import requests
+    try:
+        resp = requests.get("https://api.exchangerate-api.com/v4/latest/CNY", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            php_rate = data["rates"].get("PHP")
+            if php_rate:
+                p = Project.query.get_or_404(pid)
+                p.exchange_rate = round(php_rate, 4)
+                db.session.commit()
+                return jsonify({"rate": round(php_rate, 4)})
+        return jsonify({"rate": 8.76})
+    except Exception as e:
+        return jsonify({"rate": 8.76, "note": str(e)})
+
 # Export PHP Quotation
 @quotation_bp.route("/api/projects/<int:pid>/export-php-quote", methods=["GET"])
 def export_php_quote(pid):

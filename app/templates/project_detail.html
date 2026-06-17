@@ -941,7 +941,11 @@ function saveRevenue() {
   x.onreadystatechange = function() {
     if (x.readyState == 4) {
       if (x.status == 200) {
-        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();
+        var rEl = document.getElementById("revenueModal");
+        if (rEl) { rEl.style.display = "none"; rEl.classList.remove("show"); }
+        document.querySelectorAll(".modal-backdrop").forEach(function(b) { b.remove(); });
+        document.body.classList.remove("modal-open");
+        document.body.style.overflow = "";
         location.reload();
       } else {
         alert("保存失败: " + x.status);

@@ -5,8 +5,6 @@ from app.routes import main_bp
 
 logger = logging.getLogger(__name__)
 
-import urllib.parse
-
 LOG_FILE = r"C:\Users\admin\Desktop\MAPS_DEBUG.txt"
 
 @main_bp.route("/api/debug/log")
@@ -20,7 +18,6 @@ def debug_log():
 
 @main_bp.route("/")
 def index():
-    """Dashboard / project list page."""
     return render_template("index.html")
 
 @main_bp.route("/projects/new")
@@ -31,6 +28,7 @@ def new_project():
 def project_detail(project_id):
     from app.models import Project, PVSystem, PVModule, Inverter
     from app.models import SolarResource, FinancialResult, MonthlyGeneration
+
     project = Project.query.get(project_id)
     pd = None
     if project:
@@ -43,6 +41,12 @@ def project_detail(project_id):
             "address": project.address,
             "google_maps_link": project.google_maps_link,
             "status": project.status,
+            "roof_area": project.roof_area,
+            "exchg_date": project.exchg_date,
+            "exchange_rate": project.exchange_rate,
+            "electricity_rate": project.electricity_rate,
+            "revenue_discount": project.revenue_discount,
+            "total_revenue_php": project.total_revenue_php,
         }
         pv = project.pv_system
         if pv:
@@ -64,20 +68,28 @@ def project_detail(project_id):
             pd["solar"] = {"ghi": sr.ghi_kwhm2}
         mg = MonthlyGeneration.query.filter_by(project_id=project.id).order_by(MonthlyGeneration.month).all()
         if mg:
-            d=[31,28,31,30,31,30,31,31,30,31,30,31]
+            d = [31,28,31,30,31,30,31,31,30,31,30,31]
             pd["monthly"] = [{"m": m.month, "v": round(m.pvtotal_kwh/d[m.month-1], 1) if m.pvtotal_kwh else 0} for m in mg]
         frs = FinancialResult.query.filter_by(project_id=project.id).all()
         if frs:
             fr = frs[0]
-            pd["finance"] = {"capex": fr.total_investment_php, "payback": fr.payback_period_years, "revenue": fr.year1_revenue_php, "irr": fr.irr}
+            pd["finance"] = {
+                "capex": fr.total_investment_php,
+                "payback": fr.payback_period_years,
+                "revenue": fr.year1_revenue_php,
+                "irr": fr.irr
+            }
+
     # Load quote data for template
     try:
         from app.models import PriceLibrary, QuoteItem
         lib = [l.to_dict() for l in PriceLibrary.query.order_by(PriceLibrary.equipment_name).all()]
         qitems = [i.to_dict() for i in QuoteItem.query.filter_by(project_id=project_id).order_by(QuoteItem.id).all()]
-        totals = {"cost": sum(i["total_cost"] for i in qitems), "price": sum(i["total_price"] for i in qitems), "php_total": round(sum(i["unit_price"] * (1 + (i.get("gross_margin", 0) or 0)/100) * i["quantity"] for i in qitems) * (project.exchange_rate or 8.76))}
-    except:
+        php_total = round(sum(i["total_price"] for i in qitems) * (project.exchange_rate or 8.76)) if qitems else 0
+        totals = {"cost": sum(i["total_cost"] for i in qitems), "price": sum(i["total_price"] for i in qitems), "php_total": php_total}
+    except Exception:
         lib, qitems, totals = [], [], {"cost": 0, "price": 0, "php_total": 0}
+
     return render_template("project_detail.html", project_id=project_id, pd=pd, items=qitems, lib=lib, totals=totals)
 
 @main_bp.route("/projects/<int:project_id>/ppt")

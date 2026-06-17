@@ -23,7 +23,6 @@ def create_project():
     if not name:
         return jsonify({"error": "Project name is required"}), 400
 
-    # Parse Google Maps link (now handles redirects)
     geo = parse_google_maps_url(maps_link)
 
     project = Project(
@@ -82,7 +81,6 @@ def update_project(project_id):
 @projects_bp.route("/<int:project_id>", methods=["DELETE"])
 def delete_project(project_id):
     project = Project.query.get_or_404(project_id)
-    # Cascade delete all related records (SQLite FK constraint handling)
     from app.models import PVSystem, PVModule, Inverter, SolarResource
     from app.models import MonthlyGeneration, HourlyGeneration, FinancialResult, Upload
 
@@ -102,7 +100,6 @@ def delete_project(project_id):
         db.session.delete(project.pv_system)
     if project.solar_resource:
         db.session.delete(project.solar_resource)
-
     db.session.delete(project)
     db.session.commit()
     return jsonify({"message": "Deleted"})
@@ -121,46 +118,76 @@ def step5_calculate(project_id):
     project.deg_y2plus = deg_y2plus
     project.investment_type = inv_type
     project.ppa_discount_pct = ppa_dp
+
     from app.models import MonthlyGeneration, FinancialResult, PVSystem
+
+    # === TOTAL INVESTMENT = sum of quote items (PHP) ===
+    from app.models import QuoteItem
+    quote_items = QuoteItem.query.filter_by(project_id=project_id).all()
+    # total_price() already handles gross_margin, gives sell price
+    total_inv = sum(i.total_price() for i in quote_items) if quote_items else 0
+
+    # === FIRST YEAR REVENUE from saved revenue data ===
+    # Use the saved total_revenue_php on the project if available
+    first_year_rev = project.total_revenue_php or 0
+
+    # === MONTHLY GENERATION from GSA ===
     monthly = MonthlyGeneration.query.filter_by(project_id=project_id).order_by(MonthlyGeneration.month).all()
     pv = PVSystem.query.filter_by(project_id=project_id).first()
     kwp = pv.capacity_kwp if pv else 0
     annual_gen = pv.annual_generation_kwh if pv else 0
-    from app.models import QuoteItem
-    quote_items = QuoteItem.query.filter_by(project_id=project_id).all()
-    quote_total = sum(i.unit_price * i.quantity for i in quote_items) if quote_items else 0
-    total_inv = quote_total if quote_total > 0 else (kwp * 35000 if kwp else 0)
+
+    # Build yearly projection based on first year revenue + degradation
     yearly = []
     cum = 0
     rate = project.electricity_rate or 13.0
     disc = project.revenue_discount or 0.9
-    d = [31,28,31,30,31,30,31,31,30,31,30,31]
     md = {m.month: m for m in monthly}
+    has_monthly = len(monthly) > 0
     for y in range(1, 21):
         deg = 1 - (deg_year1 if y == 1 else deg_year1 + deg_y2plus * (y - 1)) / 100
-        gen = 0
-        for m in range(1, 13):
-            mo = md.get(m)
-            if mo and mo.pvtotal_kwh:
-                gen += mo.pvtotal_kwh
-        gen = gen * deg if gen else annual_gen * deg
-        rev = gen * rate * disc
+        if y == 1:
+            rev = first_year_rev
+        else:
+            if has_monthly:
+                # Recalculate with degradation based on monthly data
+                gen = 0
+                for m in range(1, 13):
+                    mo = md.get(m)
+                    if mo and mo.pvtotal_kwh:
+                        gen += mo.pvtotal_kwh
+                gen = gen * deg
+                rev = gen * rate * disc
+            else:
+                rev = first_year_rev * deg if first_year_rev else 0
         cum += rev
         yearly.append({"year": y, "revenue": round(rev, 2), "cumulative": round(cum, 2)})
+
     y1rev = yearly[0]["revenue"] if yearly else 0
+
+    # Generate PPA scenarios
     scenarios = []
-    for dp in [50,55,60,65,70,75,80]:
+    for dp in [50, 55, 60, 65, 70, 75, 80]:
         t = sum(y["revenue"] * (dp / 100) for y in yearly[:20])
-        scenarios.append({"discount_pct": dp, "total_revenue_20y": round(t, 2), "payback_years": round(20 * (total_inv / t) if t else 0, 1), "irr": None})
+        payback = round(20 * (total_inv / t), 1) if t and total_inv else None
+        scenarios.append({"discount_pct": dp, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": None})
+
+    # Save FinancialResult for PPT export
     FinancialResult.query.filter_by(project_id=project.id, scenario="step5").delete()
-    fr = FinancialResult(project_id=project.id, scenario="step5",
-        total_investment_php=total_inv, year1_revenue_php=round(y1rev, 2),
+    fr = FinancialResult(
+        project_id=project.id, scenario="step5",
+        total_investment_php=total_inv,
+        year1_revenue_php=round(y1rev, 2),
         revenue_5y_php=round(sum(y["revenue"] for y in yearly[:5]), 2),
         revenue_20y_php=round(cum, 2),
-        payback_period_years=round(total_inv / y1rev, 1) if y1rev else None, irr=None)
+        payback_period_years=round(total_inv / y1rev, 1) if y1rev else None,
+        irr=None
+    )
     db.session.add(fr)
-    project.status = "completed"
+    if total_inv > 0:
+        project.status = "completed"
     db.session.commit()
+
     self_inv = {
         "total_investment": total_inv,
         "first_year_revenue": round(y1rev, 2),
@@ -176,6 +203,7 @@ def step5_calculate(project_id):
             selected = s
             selected["first_year_revenue"] = round(y1rev * ppa_dp / 100, 2)
             break
+
     return jsonify({
         "self_investment": self_inv,
         "selected_scenario": selected,
@@ -183,21 +211,21 @@ def step5_calculate(project_id):
         "investment_type": inv_type,
         "ppa_discount_pct": ppa_dp
     })
+
 @projects_bp.route("/<int:project_id>/step5", methods=["GET"])
 def step5_get_config(project_id):
     project = Project.query.get_or_404(project_id)
-    return jsonify({"deg_year1": getattr(project, "deg_year1", 2.0),
+    return jsonify({
+        "deg_year1": getattr(project, "deg_year1", 2.0),
         "deg_y2plus": getattr(project, "deg_y2plus", 0.55),
         "investment_type": getattr(project, "investment_type", "self"),
-        "ppa_discount_pct": getattr(project, "ppa_discount_pct", 70)})
+        "ppa_discount_pct": getattr(project, "ppa_discount_pct", 70)
+    })
 
-# --- New: resolve Google Maps link (handles short URLs) ---
 @projects_bp.route("/resolve-link", methods=["POST"])
 def resolve_link():
-    """Resolve a Google Maps URL (including short links) and return coordinates."""
     data = request.get_json()
     if not data or not data.get("url"):
         return jsonify({"error": "URL required"}), 400
-
     result = resolve_maps_url(data["url"])
     return jsonify(result)
