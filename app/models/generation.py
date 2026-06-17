@@ -9,6 +9,9 @@ class MonthlyGeneration(db.Model):
     pvspecific_kwh_kwp = db.Column(db.Float)
     pvtotal_kwh = db.Column(db.Float)
     dni_kwhm2 = db.Column(db.Float)
+    daily_gen_kwh = db.Column(db.Float, nullable=True)
+    working_days = db.Column(db.Integer, nullable=True)
+    revenue_php = db.Column(db.Float, nullable=True)
 
     project = db.relationship("Project", back_populates="monthly_generation")
 

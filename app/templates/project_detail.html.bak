@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Project - {{ _["app_title"] }}{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{{ _["dashboard"] }}</a></li>
+        <li class="breadcrumb-item active" id="breadcrumbName">{{ pd.name if pd else _["project_info"] }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<!-- Project Header -->
+<div class="card border-0 shadow-sm mb-4" id="projectHeaderCard">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4 class="mb-1" id="projectNameDisplay">{{ pd.name if pd else "Not found" }}</h4>
+        <p class="text-muted mb-0" id="customerNameDisplay">{{ pd.customer_name or "" if pd else "" }}</p>
+      </div>
+      <div>
+        <span id="statusBadge" class="badge fs-6"></span>
+      </div>
+    </div>
+    <div class="row mt-3 small text-muted" id="geoRow"{% if not pd or not pd.latitude %} style="display:none"{% endif %}>
+      <div class="col-md-3"><strong>{{ _["latitude"] }}:</strong> <span id="dispLat">{{ pd.latitude if pd else "" }}</span></div>
+      <div class="col-md-3"><strong>{{ _["longitude"] }}:</strong> <span id="dispLng">{{ pd.longitude if pd else "" }}</span></div>
+      <div class="col-md-6"><strong>{{ _["address"] }}:</strong> <span id="dispAddr">{{ pd.address if pd else "-" }}</span></div>
+      <div class="col-md-3"><strong>{{ _["roof_area"] }}:</strong> <span id="dispRoof">{{ pd.roof_area or "-" if pd else "-" }}</span> m&sup2;</div>
+      <div class="col-md-3"><strong>{{ _["exchg_date"] }}:</strong> <span id="dispExchgDate">{{ pd.exchg_date or "-" if pd else "-" }}</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Solar System Config -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-sun"></i> {{ _["solar_system"] if _["solar_system"] is defined else "Solar System" }}</h6>
+      <button class="btn btn-success btn-sm" onclick="openGSA()" id="gsaOpenBtn">
+        <i class="bi bi-globe"></i> Open GSA
+      </button>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <label class="form-label small">Capacity (kWp)</label>
+        <input type="number" step="0.01" class="form-control form-control-sm" id="gsaCapacity" value="{{ pd.pv_system.capacity_kwp if pd and pd.pv_system else "" }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Azimuth (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaAzimuth" value="180">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Tilt (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaTilt" value="15">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Type</label>
+        <select class="form-select form-select-sm" id="gsaType">
+          <option value="medium" selected>{{ _["medium"] if _["medium"] is defined else "Medium" }}</option>
+          <option value="large">{{ _["large"] if _["large"] is defined else "Large" }}</option>
+          <option value="small">{{ _["small"] if _["small"] is defined else "Small" }}</option>
+          <option value="residential">{{ _["residential"] if _["residential"] is defined else "Residential" }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="row g-3">

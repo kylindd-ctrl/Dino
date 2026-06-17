@@ -70,7 +70,15 @@ def project_detail(project_id):
         if frs:
             fr = frs[0]
             pd["finance"] = {"capex": fr.total_investment_php, "payback": fr.payback_period_years, "revenue": fr.year1_revenue_php, "irr": fr.irr}
-    return render_template("project_detail.html", project_id=project_id, pd=pd)
+    # Load quote data for template
+    try:
+        from app.models import PriceLibrary, QuoteItem
+        lib = [l.to_dict() for l in PriceLibrary.query.order_by(PriceLibrary.equipment_name).all()]
+        qitems = [i.to_dict() for i in QuoteItem.query.filter_by(project_id=project_id).order_by(QuoteItem.id).all()]
+        totals = {"cost": sum(i["total_cost"] for i in qitems), "price": sum(i["total_price"] for i in qitems), "php_total": round(sum(i["unit_price"] * (1 + (i.get("gross_margin", 0) or 0)/100) * i["quantity"] for i in qitems) * (project.exchange_rate or 8.76))}
+    except:
+        lib, qitems, totals = [], [], {"cost": 0, "price": 0, "php_total": 0}
+    return render_template("project_detail.html", project_id=project_id, pd=pd, items=qitems, lib=lib, totals=totals)
 
 @main_bp.route("/projects/<int:project_id>/ppt")
 def project_ppt(project_id):

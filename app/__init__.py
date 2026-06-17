@@ -50,6 +50,7 @@ def create_app(config_name=None):
     from app.routes.solar_data import solar_data_bp
     from app.routes.financial import financial_bp
     from app.routes.ppt import ppt_bp
+    from app.routes.quotation import quotation_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(projects_bp, url_prefix="/api/projects")
@@ -57,6 +58,7 @@ def create_app(config_name=None):
     app.register_blueprint(solar_data_bp)
     app.register_blueprint(financial_bp)
     app.register_blueprint(ppt_bp)
+    app.register_blueprint(quotation_bp)
 
     # Auto-create database tables if they do not exist
     with app.app_context():

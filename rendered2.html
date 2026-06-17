@@ -1,12 +1,49 @@
-{% extends "base.html" %}
-{% block title %}Project - {{ _["app_title"] }}{% endblock %}
-{% block content %}
+﻿<!DOCTYPE html>
+<html lang="zh" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project - 太阳能提案平台</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/app.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="/">
+        <i class="bi bi-sun"></i> 太阳能提案
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> 看板</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/projects/new"><i class="bi bi-plus-circle"></i> 新建项目</a>
+          </li>
+        </ul>
+        <!-- Language Toggle Button -->
+        <div class="nav-item ms-2">
+          <button class="btn btn-sm btn-outline-light" onclick="toggleLanguage()" title="EN">
+            <i class="bi bi-globe2"></i> 中文
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container-fluid py-4">
+    
 <div class="row mb-3">
   <div class="col">
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">{{ _["dashboard"] }}</a></li>
-        <li class="breadcrumb-item active">{{ pd.name if pd else _["project_info"] }}</li>
+        <li class="breadcrumb-item"><a href="/">看板</a></li>
+        <li class="breadcrumb-item active">FullTest</li>
       </ol>
     </nav>
   </div>
@@ -17,26 +54,26 @@
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-start">
       <div>
-        <h4 class="mb-1" id="projectName">{% if pd %}{{ pd.name }}{% else %}Not found{% endif %}</h4>
-        <p class="text-muted mb-0" id="projectCustomer">{% if pd %}{{ pd.customer_name or "" }}{% endif %}</p>
+        <h4 class="mb-1" id="projectName">FullTest</h4>
+        <p class="text-muted mb-0" id="projectCustomer">Test</p>
       </div>
       <div>
-        {% if pd %}
-        <span class="badge fs-6 {% if pd.status=='draft' %}bg-secondary{% elif pd.status=='pdf_uploaded' %}bg-info text-dark{% elif pd.status=='gsa_uploaded' %}bg-primary{% elif pd.status=='calculated' %}bg-warning text-dark{% elif pd.status=='completed' %}bg-success{% endif %}">
-          {% if pd.status=='draft' %}Draft{% elif pd.status=='pdf_uploaded' %}PDF Done{% elif pd.status=='gsa_uploaded' %}GSA Done{% elif pd.status=='calculated' %}Calculated{% elif pd.status=='completed' %}Completed{% endif %}
+        
+        <span class="badge fs-6 bg-success">
+          Completed
         </span>
-        {% endif %}
+        
       </div>
     </div>
-    {% if pd and pd.latitude %}
+    
     <div class="row mt-3 small text-muted">
-      <div class="col-md-4"><strong>{{ _["latitude"] }}:</strong> {{ pd.latitude }}</div>
-      <div class="col-md-4"><strong>{{ _["longitude"] }}:</strong> {{ pd.longitude }}</div>
-      <div class="col-md-4"><strong>{{ _["address"] }}:</strong> {{ pd.address or "-" }}</div>
-      <div class="col-md-4"><strong>{{ _["roof_area"] }}:</strong> {{ pd.roof_area or "-" }} m&sup2;</div>
-      <div class="col-md-4"><strong>{{ _["exchg_date"] }}:</strong> {{ pd.exchg_date or "-" }}</div>
+      <div class="col-md-4"><strong>纬度:</strong> 15.085107</div>
+      <div class="col-md-4"><strong>经度:</strong> 120.634477</div>
+      <div class="col-md-4"><strong>地址:</strong> Mary Grace Heights Subdivision, Sindalan, Calulut, San Fernando, Pampanga, Central Luzon, 2000, Philippines</div>
+      <div class="col-md-4"><strong>:</strong> - m&sup2;</div>
+      <div class="col-md-4"><strong>:</strong> -</div>
     </div>
-    {% endif %}
+    
   </div>
 </div>
 
@@ -46,7 +83,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h6 class="mb-0"><i class="bi bi-sun"></i> Solar System</h6>
       <a class="btn btn-success btn-sm" id="gsaOpenBtn" href="#" target="_blank"
-         onclick="var lat={% if pd and pd.latitude %}{{ pd.latitude }}{% else %}null{% endif %},lng={% if pd and pd.longitude %}{{ pd.longitude }}{% else %}null{% endif %};if(!lat||!lng){alert('Need coords');return false}var cap=document.getElementById('gsaCapacity').value||0,az=document.getElementById('gsaAzimuth').value||180,tilt=document.getElementById('gsaTilt').value||15,typ=document.getElementById('gsaType').value||'medium';this.href='https://globalsolaratlas.info/map?s='+lat+','+lng+',10&pv='+typ+','+az+','+tilt+','+cap;return true">
+         onclick="var lat=15.085107,lng=120.634477;if(!lat||!lng){alert('Need coords');return false}var cap=document.getElementById('gsaCapacity').value||0,az=document.getElementById('gsaAzimuth').value||180,tilt=document.getElementById('gsaTilt').value||15,typ=document.getElementById('gsaType').value||'medium';this.href='https://globalsolaratlas.info/map?s='+lat+','+lng+',10&pv='+typ+','+az+','+tilt+','+cap;return true">
         <i class="bi bi-globe"></i> Open GSA
       </a>
     </div>
@@ -54,7 +91,7 @@
       <div class="col-md-3">
         <label class="form-label small">Capacity (kWp)</label>
         <input type="number" step="0.01" class="form-control form-control-sm" id="gsaCapacity"
-               value="{% if pd and pd.pv_system %}{{ pd.pv_system.capacity_kwp }}{% endif %}">
+               value="70.56">
       </div>
       <div class="col-md-3">
         <label class="form-label small">Azimuth (&deg;)</label>
@@ -85,21 +122,19 @@
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="d-flex justify-content-between">
-          <h6 class="card-title"><span class="badge bg-success me-1">1</span> {{ _["project_info"] }}</h6>
-          <i class="bi {% if pd %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+          <h6 class="card-title"><span class="badge bg-success me-1">1</span> 项目信息</h6>
+          <i class="bi bi-check-circle-fill text-success"></i>
         </div>
-        {% if pd %}
+        
         <table class="table table-sm table-borderless mb-1 small">
-          <tr><td class="fw-semibold text-nowrap p-0 pe-2" style="width:65px;">{{ _["project_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.name }}</td></tr>
-          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["customer_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.customer_name or "-" }}</td></tr>
-          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["latitude"] }}</td><td class="p-0">{{ pd.latitude if pd.latitude else "-" }}</td></tr>
-          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["longitude"] }}</td><td class="p-0">{{ pd.longitude if pd.longitude else "-" }}</td></tr>
-          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["address"] }}</td><td class="p-0 text-truncate">{{ pd.address or "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2" style="width:65px;">项目名称</td><td class="p-0 text-truncate">FullTest</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">客户名称</td><td class="p-0 text-truncate">Test</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">纬度</td><td class="p-0">15.085107</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">经度</td><td class="p-0">120.634477</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">地址</td><td class="p-0 text-truncate">Mary Grace Heights Subdivision, Sindalan, Calulut, San Fernando, Pampanga, Central Luzon, 2000, Philippines</td></tr>
         </table>
-        <a href="#" class="text-decoration-none small" onclick="showEditProject()"><i class="bi bi-pencil"></i> {{ _["edit"] }}</a>
-        {% else %}
-        <p class="small text-muted">{{ _["project_name"] }} + {{ _["google_maps_link_label"] }}.</p>
-        {% endif %}
+        <a href="#" class="text-decoration-none small" onclick="showEditProject()"><i class="bi bi-pencil"></i> 编辑</a>
+        
       </div>
     </div>
   </div>
@@ -109,26 +144,26 @@
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="d-flex justify-content-between">
-          <h6 class="card-title"><span class="badge bg-primary me-1">2</span> {{ _["opensolar_pdf"] }}</h6>
-          <i class="bi {% if pd and pd.pv_system %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+          <h6 class="card-title"><span class="badge bg-primary me-1">2</span> OpenSolar PDF</h6>
+          <i class="bi bi-check-circle-fill text-success"></i>
         </div>
-        {% if pd and pd.pv_system %}
+        
         <div class="small">
           <table class="table table-sm table-borderless mb-1">
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. {{ _["system_capacity"] }}</td><td class="p-0 text-success">{{ pd.pv_system.capacity_kwp }} kWp</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] }}</td><td class="p-0 text-success">{{ pd.module.quantity if pd.module else "-" }} pcs</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] }}</td><td class="p-0 text-success">{{ pd.module.brand if pd.module else "" }} {{ pd.module.model if pd.module else "-" }}</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] }}</td><td class="p-0 text-success">{{ pd.inverter.quantity if pd.inverter else "-" }}</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] }}</td><td class="p-0 text-success">{{ pd.inverter.brand if pd.inverter else "" }} {{ pd.inverter.model if pd.inverter else "-" }}</td></tr>
-            <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. {{ _["co2_reduction"] }}</td><td class="p-0 text-success">{{ pd.pv_system.co2_reduction_tons }} t/yr</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. 系统容量</td><td class="p-0 text-success">70.56 kWp</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. 组件数量</td><td class="p-0 text-success">112 pcs</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. 组件型号</td><td class="p-0 text-success">JA Solar JAM66D45-630/LB</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. 逆变器数量</td><td class="p-0 text-success">1</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. 逆变器型号</td><td class="p-0 text-success">SOLIS S5-GC60K</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. 减碳量</td><td class="p-0 text-success">54.0 t/yr</td></tr>
           </table>
           <a href="#" class="text-decoration-none small" onclick="togglePdfUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
         </div>
-        {% endif %}
-        <div id="step2Upload" class="mt-2" style="{% if pd and pd.pv_system %}display:none{% endif %}">
+        
+        <div id="step2Upload" class="mt-2" style="display:none">
           <form enctype="multipart/form-data" onsubmit="return uploadPdf(this)">
             <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> 上传并解析</button>
             <div id="step2Progress" class="mt-2 small" style="display:none">
               <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
             </div>
@@ -143,28 +178,72 @@
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="d-flex justify-content-between">
-          <h6 class="card-title"><span class="badge bg-primary me-1">3</span> {{ _["gsa_solar_data"] }}</h6>
-          <i class="bi {% if pd and pd.solar %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+          <h6 class="card-title"><span class="badge bg-primary me-1">3</span> GSA 太阳能数据</h6>
+          <i class="bi bi-check-circle-fill text-success"></i>
         </div>
-        {% if pd and pd.solar %}
+        
         <div class="small">
-          <div class="fw-semibold">{{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m&sup2;</div>
-          {% if pd.monthly %}
+          <div class="fw-semibold">GHI: 1708.4 kWh/m&sup2;</div>
+          
           <div class="d-flex flex-wrap mt-1">
-            {% for m in pd.monthly %}
+            
             <span class="me-2" style="min-width:100px;white-space:nowrap">
-              {% if m.m < 10 %}0{% endif %}{{ m.m }}{{ "月" if _._current_lang == "zh" else "/" }} {{ m.v }} kWh/{{ "天" if _._current_lang == "zh" else "day" }}
+              01月 218.8 kWh/天
             </span>
-            {% endfor %}
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              02月 257.3 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              03月 289.3 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              04月 316.7 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              05月 307.0 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              06月 283.5 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              07月 251.3 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              08月 249.8 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              09月 245.7 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              10月 230.6 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              11月 219.5 kWh/天
+            </span>
+            
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              12月 199.9 kWh/天
+            </span>
+            
           </div>
-          {% endif %}
+          
           <a href="#" class="text-decoration-none small" onclick="toggleGsaUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
         </div>
-        {% endif %}
-        <div id="step3Upload" class="mt-2" style="{% if pd and pd.solar %}display:none{% endif %}">
+        
+        <div id="step3Upload" class="mt-2" style="display:none">
           <form enctype="multipart/form-data" onsubmit="return uploadGsa(this)">
             <div class="mb-2"><input type="file" class="form-control form-control-sm" id="gsaFile" accept=".xlsx"></div>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> 上传并解析</button>
             <div id="step3Progress" class="mt-2 small" style="display:none">
               <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
             </div>
@@ -190,51 +269,38 @@
           <table class="table table-bordered table-sm align-middle mb-3" id="quoteTable">
             <thead class="table-light"><tr><th>No</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Margin</th><th>Cost</th><th>Price</th><th></th></tr></thead>
             <tbody id="quoteBody">
-              {% for i in items %}
-              <tr data-id="{{ i.id }}">
-                <td>{{ loop.index }}</td>
-                <td><input class="form-control form-control-sm name-input" value="{{ i.equipment_name }}"></td>
-                <td><input class="form-control form-control-sm qty-input" value="{{ i.quantity }}"></td>
-                <td><input class="form-control form-control-sm price-input" value="{{ i.unit_price }}"></td>
-                <td><input class="form-control form-control-sm margin-input" value="{{ i.gross_margin }}"></td>
-                <td class="text-end cost-cell">{{ i.total_cost }}</td>
-                <td class="text-end text-success price-cell">{{ i.total_price }}</td>
-                <td><button class="btn btn-sm btn-outline-danger" onclick="delQuote({{ i.id }})"><i class="bi bi-x"></i></button></td>
-              </tr>
-              {% endfor %}
+              
             </tbody>
             <tfoot>
               <tr class="table-secondary fw-bold">
                 <td colspan="5" class="text-end">Total (CNY):</td>
-                <td class="text-end">{{ totals.cost }}</td>
-                <td class="text-end text-success">{{ totals.price }}</td>
+                <td class="text-end">0</td>
+                <td class="text-end text-success">0</td>
                 <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
-        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap"><button class="btn btn-sm btn-primary" onclick="addQuoteRow()"><i class="bi bi-plus"></i> 添加设备</button><div class="d-flex align-items-center gap-1 ms-3"><span class="small">汇率(CNY→PHP):</span><input type="number" step="0.01" class="form-control form-control-sm" id="exchangeRate" value="{{ pd.exchange_rate or 8.76 }}" style="width:80px" onchange="updatePhpPrices()"><input type="date" class="form-control form-control-sm" id="exchangeRateDate" style="width:140px"><button class="btn btn-sm btn-info" onclick="fetchRate()"><i class="bi bi-arrow-repeat"></i> 获取</button></div></div>
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap"><button class="btn btn-sm btn-primary" onclick="addQuoteRow()"><i class="bi bi-plus"></i> 添加设备</button><div class="d-flex align-items-center gap-1 ms-3"><span class="small">汇率(CNY→PHP):</span><input type="number" step="0.01" class="form-control form-control-sm" id="exchangeRate" value="8.76" style="width:80px" onchange="updatePhpPrices()"><input type="date" class="form-control form-control-sm" id="exchangeRateDate" style="width:140px"><button class="btn btn-sm btn-info" onclick="fetchRate()"><i class="bi bi-arrow-repeat"></i> 获取</button></div></div>
         <hr>
         <h6>PHP Quotation</h6>
         <div class="table-responsive">
           <table class="table table-bordered table-sm" id="phpQuoteTable">
             <thead class="table-light"><tr><th>No</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Unit</th><th>Total</th></tr></thead>
             <tbody id="phpQuoteBody">
-              {% for i in items %}
-              <tr><td>{{ loop.index }}</td><td>{{ i.equipment_name }}</td><td>{{ i.quantity }}</td><td class="php-unit-price">{{ (i.unit_price * (1 + (i.gross_margin or 0)/100) * (pd.exchange_rate or 8.76))|int }}</td><td>pcs</td><td class="php-row-total">{{ (i.unit_price * (1 + (i.gross_margin or 0)/100) * (pd.exchange_rate or 8.76) * i.quantity)|int }}</td></tr>
-              {% else %}
+              
               <tr><td colspan="5" class="text-muted text-center py-3">暂无设备</td></tr>
-              {% endfor %}
+              
             </tbody>
 <tfoot>
               <tr class="table-secondary fw-bold">
                 <td colspan="5" class="text-end">TOTAL:</td>
-                <td class="text-end" id="phpGrandTotal">{{ totals.get("php_total", 0)|default(0)|int }}</td>
+                <td class="text-end" id="phpGrandTotal">0</td>
               </tr>
             </tfoot>
           </table>
         </div>
-        <a href="#" onclick="window.open('/api/projects/' + _editData.id + '/export-php-quote', '_blank');return false" class="btn btn-sm btn-success"><i class="bi bi-download"></i> 导出 PHP 报价单</a>
+        <a href="/api/projects/" onclick="window.location.href='/api/projects/' + _editData.id + '/export-php-quote';return false" class="btn btn-sm btn-success"><i class="bi bi-download"></i> 导出 PHP 报价单</a>
       </div>
     </div>
   </div>
@@ -369,7 +435,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <h6 class="card-title"><span class="badge bg-success me-1">6</span> Generate PPT</h6>
-          <i class="bi {% if pd and pd.status == 'completed' %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+          <i class="bi bi-check-circle-fill text-success"></i>
         </div>
         <p class="small text-muted">Generate a professional proposal PPT from project data.</p>
         <button class="btn btn-sm btn-success" id="pptBtn" onclick="genPpt()"><i class="bi bi-file-ppt"></i> Generate Proposal</button>
@@ -378,9 +444,7 @@
     </div>
   </div>
 
-          {% if not pd or not pd.pv_system %}
-          {{ _["no_data"] }}
-          {% endif %}
+          
         </div>
       </div>
     </div>
@@ -391,13 +455,13 @@
 <div class="modal fade" id="editProjectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> {{ _["edit_project"] }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> 编辑项目</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <form id="editProjectForm" onsubmit="return saveEdit()">
-          <div class="mb-3"><label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label><input type="text" class="form-control" id="editName" required></div>
-          <div class="mb-3"><label class="form-label">{{ _["customer_name_label"] }}</label><input type="text" class="form-control" id="editCustomer"></div>
+          <div class="mb-3"><label class="form-label">项目名称 <span class="text-danger">*</span></label><input type="text" class="form-control" id="editName" required></div>
+          <div class="mb-3"><label class="form-label">客户名称</label><input type="text" class="form-control" id="editCustomer"></div>
           <div class="mb-3">
-            <label class="form-label">{{ _["google_maps_link_label"] }}</label>
+            <label class="form-label">Google Maps 链接</label>
             <div class="input-group">
               <input type="url" class="form-control" id="editMapsLink" autocomplete="off">
               <a class="btn btn-outline-success" id="editMapsJumpBtn" href="javascript:void(0)" target="_blank" onclick="var d=_editData;if(d&&d.latitude){this.href='https://www.google.com/maps?q='+d.latitude+','+d.longitude;return true}alert('No coordinates');return false" style="opacity:0.5"><i class="bi bi-geo-alt-fill"></i></a>
@@ -416,19 +480,19 @@
           <div class="mb-3" id="editGeoPreview" style="display:none;">
             <div class="alert alert-success border-success py-2">
               <i class="bi bi-check-circle-fill text-success me-1"></i>
-              <strong>{{ _["parse_success"] }}!</strong>
+              <strong>解析成功!</strong>
               <table class="table table-sm table-borderless mb-0 small mt-1">
-                <tr><td class="fw-semibold p-0 pe-2">{{ _["latitude"] }}:</td><td class="p-0"><code id="editLatPreview" class="text-success"></code></td></tr>
-                <tr><td class="fw-semibold p-0 pe-2">{{ _["longitude"] }}:</td><td class="p-0"><code id="editLngPreview" class="text-success"></code></td></tr>
-                <tr><td class="fw-semibold p-0 pe-2">{{ _["address"] }}:</td><td class="p-0"><span id="editAddrPreview" class="text-success"></span></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">纬度:</td><td class="p-0"><code id="editLatPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">经度:</td><td class="p-0"><code id="editLngPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">地址:</td><td class="p-0"><span id="editAddrPreview" class="text-success"></span></td></tr>
               </table>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</button>
-        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> {{ _["save"] }}</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> 保存</button>
       </div>
     </div>
   </div>
@@ -499,9 +563,20 @@
   </div>
 </div>
 
-{% endblock %}
 
-{% block scripts %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script>
+    function toggleLanguage() {
+      const current = "zh";
+      const next = current === "zh" ? "en" : "zh";
+      document.cookie = "lang=" + next + "; path=/; max-age=31536000";
+      window.location.reload();
+    }
+  </script>
+  
 <script>
 window.onerror = function(msg, url, line) {
   console.error("JS Error: " + msg + " at line " + line);
@@ -511,7 +586,7 @@ window.onerror = function(msg, url, line) {
 function safeModal(modalId) {
   var el = document.getElementById(modalId);
   if (!el) { alert('Modal not found: ' + modalId); return null; }
-  try { if (typeof bootstrap !== 'undefined' && bootstrap.Modal) { var m = new bootstrap.Modal(el); m.show(); return m; } } catch(e) {}
+  try { if (typeof bootstrap !== 'undefined' && bootstrap.Modal) return new bootstrap.Modal(el); } catch(e) {}
   el.style.display = 'block'; el.classList.add('show');
   document.body.classList.add('modal-open');
   var bd = document.createElement('div'); bd.className = 'modal-backdrop fade show';
@@ -522,10 +597,10 @@ function safeModal(modalId) {
     var bk = document.querySelector('.modal-backdrop'); if (bk) bk.remove();
   }};
 }
-var _lib = {{ lib|tojson }};
-var _pid = {{ pd.id if pd else 0 }};
-var _monthlyData = {{ pd.monthly|tojson if pd and pd.monthly else [] }};
-var _editData = {% if pd %}{{ pd | tojson }}{% else %}null{% endif %};
+var _lib = [];
+var _pid = 44;
+var _monthlyData = [{"m": 1, "v": 218.8}, {"m": 2, "v": 257.3}, {"m": 3, "v": 289.3}, {"m": 4, "v": 316.7}, {"m": 5, "v": 307.0}, {"m": 6, "v": 283.5}, {"m": 7, "v": 251.3}, {"m": 8, "v": 249.8}, {"m": 9, "v": 245.7}, {"m": 10, "v": 230.6}, {"m": 11, "v": 219.5}, {"m": 12, "v": 199.9}];
+var _editData = {"address": "Mary Grace Heights Subdivision, Sindalan, Calulut, San Fernando, Pampanga, Central Luzon, 2000, Philippines", "customer_name": "Test", "finance": {"capex": 9945630.96, "irr": null, "payback": null, "revenue": 1213158.96}, "google_maps_link": "https://maps.app.goo.gl/LbFqwdXGz8QW7W57A", "id": 44, "inverter": {"brand": "SOLIS", "capacity_kw": 60.0, "model": "S5-GC60K", "quantity": 1}, "latitude": 15.085107, "longitude": 120.634477, "module": {"brand": "JA Solar", "model": "JAM66D45-630/LB", "quantity": 112, "wattage": 630.0}, "monthly": [{"m": 1, "v": 218.8}, {"m": 2, "v": 257.3}, {"m": 3, "v": 289.3}, {"m": 4, "v": 316.7}, {"m": 5, "v": 307.0}, {"m": 6, "v": 283.5}, {"m": 7, "v": 251.3}, {"m": 8, "v": 249.8}, {"m": 9, "v": 245.7}, {"m": 10, "v": 230.6}, {"m": 11, "v": 219.5}, {"m": 12, "v": 199.9}], "name": "FullTest", "pv_system": {"annual_generation_kwh": 88313.0, "capacity_kwp": 70.56, "co2_reduction_tons": 54.0}, "solar": {"ghi": 1708.4}, "status": "completed"};
 
 function togglePdfUpload() {
   var el = document.getElementById("step2Upload");
@@ -625,7 +700,7 @@ function saveEdit() {
   x.onreadystatechange = function() {
     if (x.readyState == 4 && x.status == 200) {
       var m = safeModal("editProjectModal"); if (m && m.hide) m.hide();
-      setTimeout(function() { location.reload(); }, 100);
+      location.reload();
     }
   };
   x.send(JSON.stringify({
@@ -693,9 +768,9 @@ function genPpt() {
   var btn = document.getElementById("pptBtn");
   if (btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
   var x = new XMLHttpRequest();
-  x.open("POST", "/api/projects/" + (_editData ? _editData.id : _pid) + "/generate-ppt", true);
+  x.open("POST", "/api/projects/44/generate-ppt", true);
   x.onreadystatechange = function() {
-    if (btn) { btn.disabled = false; btn.innerHTML = "<i class=\"bi bi-file-ppt\"></i> Generate Proposal"; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class=\"bi bi-file-ppt\"></i> Generate Proposal'; }
     if (x.readyState == 4 && x.status == 200) {
       try {
         var d = JSON.parse(x.responseText);
@@ -766,6 +841,7 @@ function delLib(id) {
 }
 
 function addQuoteRow() {
+  try {
     var sel = document.getElementById("aqEquipment");
     if (!sel) return;
   sel.innerHTML = "<option value=''>-- 选择设备 --</option>";
@@ -941,7 +1017,7 @@ function saveRevenue() {
   x.onreadystatechange = function() {
     if (x.readyState == 4) {
       if (x.status == 200) {
-        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();
+        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();ide();
         location.reload();
       } else {
         alert("保存失败: " + x.status);
@@ -1370,5 +1446,5 @@ if (_pid > 0) {
 
 </script>
 
-
-{% endblock %}
+</body>
+</html>

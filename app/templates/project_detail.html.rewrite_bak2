@@ -234,7 +234,7 @@
             </tfoot>
           </table>
         </div>
-        <a href="#" onclick="window.open('/api/projects/' + _editData.id + '/export-php-quote', '_blank');return false" class="btn btn-sm btn-success"><i class="bi bi-download"></i> 导出 PHP 报价单</a>
+        <a href="/api/projects/" onclick="window.location.href='/api/projects/' + _editData.id + '/export-php-quote';return false" class="btn btn-sm btn-success"><i class="bi bi-download"></i> 导出 PHP 报价单</a>
       </div>
     </div>
   </div>
@@ -511,7 +511,7 @@ window.onerror = function(msg, url, line) {
 function safeModal(modalId) {
   var el = document.getElementById(modalId);
   if (!el) { alert('Modal not found: ' + modalId); return null; }
-  try { if (typeof bootstrap !== 'undefined' && bootstrap.Modal) { var m = new bootstrap.Modal(el); m.show(); return m; } } catch(e) {}
+  try { if (typeof bootstrap !== 'undefined' && bootstrap.Modal) return new bootstrap.Modal(el); } catch(e) {}
   el.style.display = 'block'; el.classList.add('show');
   document.body.classList.add('modal-open');
   var bd = document.createElement('div'); bd.className = 'modal-backdrop fade show';
@@ -625,7 +625,7 @@ function saveEdit() {
   x.onreadystatechange = function() {
     if (x.readyState == 4 && x.status == 200) {
       var m = safeModal("editProjectModal"); if (m && m.hide) m.hide();
-      setTimeout(function() { location.reload(); }, 100);
+      location.reload();
     }
   };
   x.send(JSON.stringify({
@@ -693,9 +693,9 @@ function genPpt() {
   var btn = document.getElementById("pptBtn");
   if (btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
   var x = new XMLHttpRequest();
-  x.open("POST", "/api/projects/" + (_editData ? _editData.id : _pid) + "/generate-ppt", true);
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/generate-ppt", true);
   x.onreadystatechange = function() {
-    if (btn) { btn.disabled = false; btn.innerHTML = "<i class=\"bi bi-file-ppt\"></i> Generate Proposal"; }
+    if (btn) { btn.disabled = false; btn.innerHTML = "<i class="bi bi-file-ppt"></i> Generate Proposal"; }
     if (x.readyState == 4 && x.status == 200) {
       try {
         var d = JSON.parse(x.responseText);
@@ -766,6 +766,7 @@ function delLib(id) {
 }
 
 function addQuoteRow() {
+  try {
     var sel = document.getElementById("aqEquipment");
     if (!sel) return;
   sel.innerHTML = "<option value=''>-- 选择设备 --</option>";
@@ -941,7 +942,7 @@ function saveRevenue() {
   x.onreadystatechange = function() {
     if (x.readyState == 4) {
       if (x.status == 200) {
-        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();
+        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();ide();
         location.reload();
       } else {
         alert("保存失败: " + x.status);
@@ -1369,6 +1370,4 @@ if (_pid > 0) {
 }
 
 </script>
-
-
 {% endblock %}
