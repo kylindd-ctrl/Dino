@@ -137,31 +137,34 @@ def step5_calculate(project_id):
     kwp = pv.capacity_kwp if pv else 0
     annual_gen = pv.annual_generation_kwh if pv else 0
 
-    # Build yearly projection based on first year revenue + degradation
-    yearly = []
-    cum = 0
+    # Build base first-year revenue (pre-degradation) from GSA monthly data
     rate = project.electricity_rate or 13.0
     disc = project.revenue_discount or 0.9
     md = {m.month: m for m in monthly}
     has_monthly = len(monthly) > 0
+    if has_monthly:
+        base_gen = sum(mo.pvtotal_kwh for mo in monthly if mo and mo.pvtotal_kwh)
+        base_y1_revenue = base_gen * rate * disc
+    elif annual_gen:
+        base_y1_revenue = annual_gen * rate * disc
+    else:
+        base_y1_revenue = first_year_rev
+
+    # Apply degradation: Y1 = deg_year1%, Y2+ = deg_y2plus/year compounded
+    y1_factor = 1 - deg_year1 / 100
+    y2plus_factor = 1 - deg_y2plus / 100
+    yearly = []
+    cum = 0
     for y in range(1, 21):
-        deg = 1 - (deg_year1 if y == 1 else deg_year1 + deg_y2plus * (y - 1)) / 100
         if y == 1:
-            rev = first_year_rev
+            factor = y1_factor
         else:
-            if has_monthly:
-                # Recalculate with degradation based on monthly data
-                gen = 0
-                for m in range(1, 13):
-                    mo = md.get(m)
-                    if mo and mo.pvtotal_kwh:
-                        gen += mo.pvtotal_kwh
-                gen = gen * deg
-                rev = gen * rate * disc
-            else:
-                rev = first_year_rev * deg if first_year_rev else 0
+            factor = y1_factor * (y2plus_factor ** (y - 1))
+        rev = base_y1_revenue * factor
         cum += rev
         yearly.append({"year": y, "revenue": round(rev, 2), "cumulative": round(cum, 2)})
+
+    first_year_rev = yearly[0]["revenue"]
 
     y1rev = yearly[0]["revenue"] if yearly else 0
 
