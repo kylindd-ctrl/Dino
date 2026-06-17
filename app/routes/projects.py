@@ -190,7 +190,7 @@ def step5_calculate(project_id):
         t = sum(y["revenue"] * (dp / 100) for y in yearly[:20])
         payback = round(20 * (total_inv / t), 1) if t and total_inv else None
         ppa_irr = round(((t / total_inv) ** (1/20) - 1), 6) if t > 0 and total_inv > 0 else None
-        scenarios.append({"discount_pct": dp, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": ppa_irr})
+        scenarios.append({"discount_pct": dp, "total_investment": total_inv, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": ppa_irr})
 
     # Save FinancialResult for PPT export
     FinancialResult.query.filter_by(project_id=project.id, scenario="step5").delete()
@@ -221,7 +221,7 @@ def step5_calculate(project_id):
     for s in scenarios:
         if s["discount_pct"] == ppa_dp:
             selected = s
-            selected["first_year_revenue"] = round(y1rev * ppa_dp / 100, 2)
+            selected["first_year_revenue"] = round(first_year_rev * ppa_dp / 100, 2)
             break
 
     return jsonify({
