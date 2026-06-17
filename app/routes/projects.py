@@ -131,6 +131,9 @@ def step5_calculate(project_id):
     # Use the saved total_revenue_php on the project if available
     first_year_rev = project.total_revenue_php or 0
 
+    # === RAW FIRST YEAR REVENUE (pre-degradation) for display alignment ===
+    raw_y1_revenue = first_year_rev
+
     # === MONTHLY GENERATION from GSA ===
     monthly = MonthlyGeneration.query.filter_by(project_id=project_id).order_by(MonthlyGeneration.month).all()
     pv = PVSystem.query.filter_by(project_id=project_id).first()
@@ -213,7 +216,8 @@ def step5_calculate(project_id):
 
     self_inv = {
         "total_investment": total_inv,
-        "first_year_revenue": round(y1rev, 2),
+        "first_year_revenue": round(raw_y1_revenue, 2),
+        "first_year_revenue_after_deg": round(y1rev, 2),
         "payback_years": round(total_inv / y1rev, 1) if y1rev else None,
         "irr": irr_value,
         "total_revenue_20y": round(cum, 2),
@@ -224,7 +228,7 @@ def step5_calculate(project_id):
     for s in scenarios:
         if s["discount_pct"] == ppa_dp:
             selected = s
-            selected["first_year_revenue"] = round(first_year_rev * ppa_dp / 100, 2)
+            selected["first_year_revenue"] = round(raw_y1_revenue * ppa_dp / 100, 2)
             break
 
     return jsonify({
