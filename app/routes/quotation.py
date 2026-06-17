@@ -75,11 +75,12 @@ def get_revenue(pid):
             pvtotal = m.pvtotal_kwh or 0
             days = days_list[month-1]
             dg = round(pvtotal / days, 2) if days else 0
-            wd = days
+            wd = m.working_days if m.working_days is not None and m.working_days > 0 else days
+            rev = m.revenue_php if m.revenue_php is not None and m.revenue_php > 0 else round(wd * dg * (p.electricity_rate or 13), 2) if wd and dg else 0
         else:
             dg = 0
             wd = 0
-        rev = round(wd * dg * (p.electricity_rate or 13), 2) if wd and dg else 0
+            rev = 0
         months.append({"month": month, "daily_gen": dg, "working_days": wd, "revenue_php": rev})
     total = sum(x["revenue_php"] for x in months) * (p.revenue_discount or 0.9)
     return jsonify({"months": months, "discount": p.revenue_discount or 0.9, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
@@ -98,6 +99,7 @@ def save_revenue(pid):
         for idx, wd in enumerate(data["working_days"], 1):
             mg = MonthlyGeneration.query.filter_by(project_id=pid, month=idx).first()
             if mg:
+                mg.working_days = int(wd)
                 rev = round(int(wd) * (mg.pvtotal_kwh or 0) * (p.electricity_rate or 13) / days_list[idx-1], 2) if int(wd) and mg.pvtotal_kwh else 0
                 mg.revenue_php = rev
     total_rev = sum(mg.revenue_php or 0 for mg in MonthlyGeneration.query.filter_by(project_id=pid).all()) * (p.revenue_discount or 0.9)

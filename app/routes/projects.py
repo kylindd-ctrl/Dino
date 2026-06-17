@@ -125,7 +125,7 @@ def step5_calculate(project_id):
     from app.models import QuoteItem
     quote_items = QuoteItem.query.filter_by(project_id=project_id).all()
     # total_price() already handles gross_margin, gives sell price
-    total_inv = sum(i.total_price() for i in quote_items) if quote_items else 0
+    total_inv = round(sum(i.total_price() for i in quote_items) * (project.exchange_rate or 8.76)) if quote_items else 0
 
     # === FIRST YEAR REVENUE from saved revenue data ===
     # Use the saved total_revenue_php on the project if available
@@ -165,12 +165,32 @@ def step5_calculate(project_id):
 
     y1rev = yearly[0]["revenue"] if yearly else 0
 
+    # Calculate IRR using Newton's method
+    if total_inv > 0 and len(yearly) > 0:
+        def npv(rate):
+            return sum(y["revenue"] / ((1 + rate) ** y["year"]) for y in yearly) - total_inv
+        guess = 0.1
+        for _ in range(100):
+            f = npv(guess)
+            f_prime = sum(-y["year"] * y["revenue"] / ((1 + guess) ** (y["year"] + 1)) for y in yearly)
+            if abs(f_prime) < 1e-10:
+                break
+            new_guess = guess - f / f_prime
+            if abs(new_guess - guess) < 1e-6:
+                guess = new_guess
+                break
+            guess = new_guess
+        irr_value = round(guess, 6) if 0 < guess < 5 else None
+    else:
+        irr_value = None
+
     # Generate PPA scenarios
     scenarios = []
     for dp in [50, 55, 60, 65, 70, 75, 80]:
         t = sum(y["revenue"] * (dp / 100) for y in yearly[:20])
         payback = round(20 * (total_inv / t), 1) if t and total_inv else None
-        scenarios.append({"discount_pct": dp, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": None})
+        ppa_irr = round(((t / total_inv) ** (1/20) - 1), 6) if t > 0 and total_inv > 0 else None
+        scenarios.append({"discount_pct": dp, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": ppa_irr})
 
     # Save FinancialResult for PPT export
     FinancialResult.query.filter_by(project_id=project.id, scenario="step5").delete()
@@ -181,7 +201,7 @@ def step5_calculate(project_id):
         revenue_5y_php=round(sum(y["revenue"] for y in yearly[:5]), 2),
         revenue_20y_php=round(cum, 2),
         payback_period_years=round(total_inv / y1rev, 1) if y1rev else None,
-        irr=None
+        irr=irr_value
     )
     db.session.add(fr)
     if total_inv > 0:
@@ -192,7 +212,7 @@ def step5_calculate(project_id):
         "total_investment": total_inv,
         "first_year_revenue": round(y1rev, 2),
         "payback_years": round(total_inv / y1rev, 1) if y1rev else None,
-        "irr": None,
+        "irr": irr_value,
         "total_revenue_20y": round(cum, 2),
         "yearly": yearly,
         "simple_roi_pct": round((cum - total_inv) / total_inv * 100, 1) if total_inv else 0

@@ -992,6 +992,11 @@ document.getElementById('quoteTable').addEventListener('change', function(e) {
     var x = new XMLHttpRequest();
     x.open('PUT', '/api/projects/' + _pid + '/quote/' + qid, true);
     x.setRequestHeader('Content-Type', 'application/json');
+    x.onreadystatechange = function() {
+      if (x.readyState == 4 && x.status == 200) {
+        if (typeof updatePhpPrices === 'function') updatePhpPrices();
+      }
+    };
     x.send(JSON.stringify({
       equipment_name: inputs[0].value,
       quantity: parseInt(inputs[1].value) || 1,
