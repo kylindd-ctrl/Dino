@@ -83,7 +83,7 @@ def get_revenue(pid):
             rev = 0
         months.append({"month": month, "daily_gen": dg, "working_days": wd, "revenue_php": rev})
     total = sum(x["revenue_php"] for x in months) * (p.revenue_discount or 1.0)
-    return jsonify({"months": months, "discount": p.revenue_discount or 1.0, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
+    return jsonify({"months": months, "discount": (p.revenue_discount or 1.0) * 100, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
 
 # Revenue - PUT (save data) - THIS WAS THE MISSING ROUTE!
 @quotation_bp.route("/api/projects/<int:pid>/revenue", methods=["PUT"])
@@ -91,7 +91,7 @@ def save_revenue(pid):
     p = Project.query.get_or_404(pid)
     data = request.get_json()
     if "discount" in data:
-        p.revenue_discount = float(data["discount"])
+        p.revenue_discount = float(data["discount"]) / 100
     if "rate" in data:
         p.electricity_rate = float(data["rate"])
     if "working_days" in data:

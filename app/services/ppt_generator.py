@@ -27,6 +27,8 @@ PLACEHOLDER_MAP = {
     "{{roof_area}}": "roof_area",
     "{{Exchg}}": "exchange_rate",
     "{{Exchg_date}}": "exchange_date",
+    "{{project_name}}": "project_name",
+    "{{date}}": "date",
     "{{set}}": "set_unit",
 }
 
