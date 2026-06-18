@@ -374,6 +374,7 @@
         <p class="small text-muted">Generate a professional proposal PPT from project data.</p>
         <div class="mt-2"><label class="small text-muted">或上传自定义模板:</label>
         <input type="file" class="form-control form-control-sm d-inline-block" id="pptTemplateFile" accept=".pptx" style="width:auto;display:inline!important">
+        <button class="btn btn-sm btn-outline-secondary mt-1 ms-1" onclick="previewPptPlaceholders()"><i class="bi bi-search"></i> 预览变量</button>
         <button class="btn btn-sm btn-outline-info mt-1" onclick="uploadPptTemplate()"><i class="bi bi-upload"></i> 上传模板</button></div>
         <button class="btn btn-sm btn-success" id="pptBtn" onclick="genPpt()"><i class="bi bi-file-ppt"></i> Generate Proposal</button>
         <div id="pptStatus" class="small mt-1"></div>
@@ -385,6 +386,32 @@
           {{ _["no_data"] }}
           {% endif %}
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- PPT Placeholder Mapping Modal -->
+<div class="modal fade" id="pptMappingModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-list-check"></i> PPT Placeholder Mapping</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="pptMappingStatus" class="small text-muted mb-2">扫描模板中...</div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm" id="pptMappingTable">
+            <thead class="table-light"><tr><th>Placeholder</th><th>Auto-Matched Field</th><th>Value</th><th>Status</th></tr></thead>
+            <tbody id="pptMappingBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-sm btn-success" onclick="generatePptWithMapping()"><i class="bi bi-file-ppt"></i> 生成 PPT</button>
       </div>
     </div>
   </div>
@@ -1399,6 +1426,41 @@ if (_pid > 0) {
   })();
 }
 
+
+function previewPptPlaceholders() {
+  var x = new XMLHttpRequest();
+  x.open("GET", "/api/projects/" + _editData.id + "/scan-ppt-placeholders", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      if (x.status == 200) {
+        var data = JSON.parse(x.responseText);
+        var tbody = document.getElementById("pptMappingBody");
+        tbody.innerHTML = "";
+        data.placeholders.forEach(function(p) {
+          var status = p.matched ? "<span class='text-success'>&#10003;</span>" : "<span class='text-warning'>&#9888;</span>";
+          var inputId = "map_" + p.placeholder.replace(/[{}]/g, "").trim();
+          // Try to auto-fill value from _editData
+          var value = p.value || "";
+          tbody.innerHTML += "<tr><td><code>" + p.placeholder + "</code></td><td>" + (p.field || "<span class='text-muted'>Not Found</span>") + "</td><td><input type='text' class='form-control form-control-sm' id='" + inputId + "' value='" + value + "'></td><td>" + status + "</td></tr>";
+        });
+        document.getElementById("pptMappingStatus").textContent = "找到 " + data.count + " 个占位符";
+        new bootstrap.Modal(document.getElementById("pptMappingModal")).show();
+      } else {
+        try { var e = JSON.parse(x.responseText); alert(e.error || "Scan failed"); } catch(ex) { alert("Scan failed"); }
+      }
+    }
+  };
+  x.send();
+}
+
+function generatePptWithMapping() {
+  var mapping = {};
+  document.querySelectorAll("#pptMappingBody input").forEach(function(inp) {
+    mapping[inp.id.replace("map_", "").trim()] = inp.value;
+  });
+  // Call genPpt() which generates with current data
+  genPpt();
+}
 </script>
 
 

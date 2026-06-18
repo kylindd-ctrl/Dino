@@ -50,7 +50,10 @@ def calculate_step5(project_id):
 
     # Get First Year Revenue from Step 4 Revenue Calculation
     mg = MonthlyGeneration.query.filter_by(project_id=project_id).all()
-    if mg:
+    # Single source of truth: use saved total_revenue_php from Revenue Calculation
+    if project.total_revenue_php and project.total_revenue_php > 0:
+        first_year_revenue = project.total_revenue_php
+    elif mg:
         days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
         first_year_revenue = 0
         for m in mg:

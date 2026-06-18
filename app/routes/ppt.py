@@ -8,6 +8,60 @@ logger = logging.getLogger(__name__)
 ppt_bp = Blueprint("ppt", __name__)
 
 
+
+@ppt_bp.route("/api/projects/<int:project_id>/scan-ppt-placeholders", methods=["GET"])
+def scan_ppt_placeholders(project_id):
+    """Scan uploaded PPT template and return found placeholders."""
+    from app.models import Upload
+    import re
+    from pptx import Presentation
+    
+    uploaded = Upload.query.filter_by(project_id=project_id, file_type="ppt_template").first()
+    if not uploaded or not os.path.exists(uploaded.stored_path):
+        return jsonify({"error": "No PPT template uploaded. Upload a template first."}), 400
+    
+    prs = Presentation(uploaded.stored_path)
+    placeholders = set()
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for para in shape.text_frame.paragraphs:
+                    found = re.findall(r'\{\{[^}]+\}\}', para.text)
+                    for ph in found:
+                        placeholders.add(ph)
+            if shape.has_table:
+                for row in shape.table.rows:
+                    for cell in row.cells:
+                        found = re.findall(r'\{\{[^}]+\}\}', cell.text)
+                        for ph in found:
+                            placeholders.add(ph)
+    
+    # Build known mappings
+    known_fields = {
+        "{{capacity}}": "System Capacity (kWp)", "{{flh}}": "Full Load Hours",
+        "{{inv_count}}": "Inverter Count", "{{module_count}}": "Module Count",
+        "{{total_investment}}": "Total Investment (PHP)", "{{year1_revenue}}": "First Year Revenue (PHP)",
+        "{{payback_period}}": "Payback Period (Years)", "{{rev_20y}}": "20-Year Revenue (PHP)",
+        "{{irr_20y}}": "20-Year IRR", "{{rev_5y}}": "5-Year Revenue (PHP)", "{{irr_5y}}": "5-Year IRR",
+        "{{inv_power}}": "Inverter Power (kW)", "{{carbon_reduction}}": "CO2 Reduction (tons)",
+        "{{pro_own}}": "Customer Name", "{{adr}}": "Address", "{{geographic}}": "Coordinates (DMS)",
+        "{{ghi}}": "GHI (kWh/m²)", "{{roof_area}}": "Roof Area (m²)", "{{Exchg}}": "Exchange Rate",
+        "{{Exchg_date}}": "Exchange Rate Date", "{{set}}": "Inverter Unit"
+    };
+    
+    result = []
+    for ph in sorted(placeholders):
+        clean = ph.replace("{", "").replace("}", "").strip()
+        field = known_fields.get(ph, "")
+        result.append({
+            "placeholder": ph,
+            "field": field,
+            "matched": bool(field),
+            "value": ""
+        })
+    
+    return jsonify({"placeholders": result, "count": len(result)}), 200
+
 @ppt_bp.route("/api/projects/<int:project_id>/upload-ppt-template", methods=["POST"])
 def upload_ppt_template(project_id):
     """Upload a PPT template for placeholder replacement."""
