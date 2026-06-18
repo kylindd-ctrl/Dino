@@ -27,7 +27,9 @@ PLACEHOLDER_MAP = {
     "{{roof_area}}": "roof_area",
     "{{Exchg}}": "exchange_rate",
     "{{Exchg_date}}": "exchange_date",
+    "{{project name}}": "project_name",
     "{{project_name}}": "project_name",
+    "{{month}}": "month",
     "{{date}}": "date",
     "{{set}}": "set_unit",
 }
@@ -52,15 +54,33 @@ def generate_proposal(project, config) -> str:
     # Build replacement dict from project data
     replacements = _build_replacements(project)
 
-    # Replace text in all shapes
+    # Replace text in all shapes (handles multi-run placeholders)
     for slide in prs.slides:
         for shape in slide.shapes:
             if shape.has_text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        for placeholder, value in replacements.items():
-                            if placeholder in run.text:
-                                run.text = run.text.replace(placeholder, str(value))
+                for para in shape.text_frame.paragraphs:
+                    if not para.runs: continue
+                    full = para.text
+                    newtext = full
+                    for ph, val in replacements.items():
+                        if ph in newtext:
+                            newtext = newtext.replace(ph, str(val))
+                    if newtext != full:
+                        para.runs[0].text = newtext
+                        for r in para.runs[1:]: r.text = ""
+            if shape.has_table:
+                for row in shape.table.rows:
+                    for cell in row.cells:
+                        for para in cell.text_frame.paragraphs:
+                            if not para.runs: continue
+                            full = para.text
+                            newtext = full
+                            for ph, val in replacements.items():
+                                if ph in newtext:
+                                    newtext = newtext.replace(ph, str(val))
+                            if newtext != full:
+                                para.runs[0].text = newtext
+                                for r in para.runs[1:]: r.text = ""
 
     prs.save(output_path)
     logger.info("PPT saved to %s", output_path)
