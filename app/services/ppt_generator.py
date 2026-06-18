@@ -34,7 +34,7 @@ PLACEHOLDER_MAP = {
     "{{set}}": "set_unit",
 }
 
-def generate_proposal(project, config) -> str:
+def generate_proposal(project, config, custom_values=None) -> str:
     """Generate proposal PPT by replacing placeholders. (Phase 5)"""
     ref_folder = config["REFERENCE_FOLDER"]
     output_folder = config["OUTPUT_FOLDER"]
@@ -81,6 +81,13 @@ def generate_proposal(project, config) -> str:
                             if newtext != full:
                                 para.runs[0].text = newtext
                                 for r in para.runs[1:]: r.text = ""
+
+    # Apply custom overrides
+    if custom_values:
+        for ph, val in custom_values.items():
+            full_ph = "{{" + ph + "}}" if not ph.startswith("{{") else ph
+            if val:
+                replacements[full_ph] = val
 
     prs.save(output_path)
     logger.info("PPT saved to %s", output_path)

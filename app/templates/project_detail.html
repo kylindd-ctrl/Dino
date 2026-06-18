@@ -1437,13 +1437,13 @@ function previewPptPlaceholders() {
         var tbody = document.getElementById("pptMappingBody");
         tbody.innerHTML = "";
         data.placeholders.forEach(function(p) {
-          var status = p.matched ? "<span class='text-success'>&#10003;</span>" : "<span class='text-warning'>&#9888;</span>";
+          var status = p.matched ? "<span class='text-success' title='Matched'>&#10003;</span>" : "<span class='text-warning' title='Not Matched'>&#9888;</span>";
           var inputId = "map_" + p.placeholder.replace(/[{}]/g, "").trim();
-          // Try to auto-fill value from _editData
-          var value = p.value || "";
-          tbody.innerHTML += "<tr><td><code>" + p.placeholder + "</code></td><td>" + (p.field || "<span class='text-muted'>Not Found</span>") + "</td><td><input type='text' class='form-control form-control-sm' id='" + inputId + "' value='" + value + "'></td><td>" + status + "</td></tr>";
+          var val = p.auto_value || "";
+          var autoVal = p.auto_value || "<span class='text-muted'>empty</span>";
+          tbody.innerHTML += "<tr><td><code>" + p.placeholder + "</code></td><td>" + (p.field || "<span class='text-muted'>Not Found</span>") + "</td><td>" + autoVal + "</td><td><input type='text' class='form-control form-control-sm' id='" + inputId + "' value='" + val + "' placeholder='" + (p.auto_value || "enter value") + "'></td><td>" + status + "</td></tr>";
         });
-        document.getElementById("pptMappingStatus").textContent = "找到 " + data.count + " 个占位符";
+        document.getElementById("pptMappingStatus").textContent = "Found " + data.count + " placeholders";
         new bootstrap.Modal(document.getElementById("pptMappingModal")).show();
       } else {
         try { var e = JSON.parse(x.responseText); alert(e.error || "Scan failed"); } catch(ex) { alert("Scan failed"); }
@@ -1454,12 +1454,28 @@ function previewPptPlaceholders() {
 }
 
 function generatePptWithMapping() {
-  var mapping = {};
+  var custom = {};
   document.querySelectorAll("#pptMappingBody input").forEach(function(inp) {
-    mapping[inp.id.replace("map_", "").trim()] = inp.value;
+    var cleanName = inp.id.replace("map_", "");
+    if (inp.value) custom[cleanName] = inp.value;
   });
-  // Call genPpt() which generates with current data
-  genPpt();
+  // Send custom values directly to generate-ppt
+  var btn = document.getElementById("pptBtn");
+  if (btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _editData.id + "/generate-ppt", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      if (btn) { btn.disabled = false; btn.innerHTML = "Generate Proposal"; }
+      if (x.status == 200) {
+        window.location.href = "/api/projects/" + _editData.id + "/download-ppt";
+      } else {
+        try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "PPT generation failed")); } catch(ex) { alert("PPT generation failed"); }
+      }
+    }
+  };
+  x.send(JSON.stringify({custom_values: custom}));
 }
 </script>
 
