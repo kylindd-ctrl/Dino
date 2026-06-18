@@ -36,24 +36,14 @@ PLACEHOLDER_MAP = {
 
 def generate_proposal(project, config, custom_values=None) -> str:
     """Generate proposal PPT by replacing placeholders. (Phase 5)"""
-    ref_folder = config["REFERENCE_FOLDER"]
     output_folder = config["OUTPUT_FOLDER"]
-    template_path = os.path.join(ref_folder, "ppt.pptx")
+    from app.models import Upload
+    output_folder = config["OUTPUT_FOLDER"]
 
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"PPT template not found at {template_path}")
-
-    # Copy template
-    project_dir = os.path.join(output_folder, str(project.id))
-    os.makedirs(project_dir, exist_ok=True)
-    output_path = os.path.join(project_dir, f"{project.name}_proposal.pptx".replace(" ", "_"))
-    shutil.copy2(template_path, output_path)
-
-    prs = Presentation(output_path)
-
-    # Build replacement dict from project data
-    replacements = _build_replacements(project)
-
+    uploaded = Upload.query.filter_by(project_id=project.id, file_type="ppt_template").first()
+    if not uploaded or not os.path.exists(uploaded.stored_path):
+        raise FileNotFoundError("No PPT template uploaded. Go to Step 6 and upload a template first.")
+    template_path = uploaded.stored_path
     # Replace text in all shapes (handles multi-run placeholders)
     for slide in prs.slides:
         for shape in slide.shapes:
