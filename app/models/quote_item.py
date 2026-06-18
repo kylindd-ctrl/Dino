@@ -16,7 +16,7 @@ class QuoteItem(db.Model):
     project = db.relationship("Project", back_populates="quote_items")
 
     def total_cost(self):
-        return self.unit_price * self.quantity
+        return round(self.unit_price * self.quantity, 2)
 
     def total_price(self):
         """Calculate sell price with gross margin.
@@ -32,7 +32,7 @@ class QuoteItem(db.Model):
             margin = margin / 100.0
         if margin <= 0 or margin >= 1:
             return self.total_cost()
-        return round(self.total_cost() / (1 - margin), 2)
+        return round(self.total_cost() * (1 + margin), 2)
 
     def to_dict(self):
         return {"id": self.id, "project_id": self.project_id,

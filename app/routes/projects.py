@@ -172,13 +172,15 @@ def export_php_quote(pid):
     total_val = 0
     for idx_i, item in enumerate(items, 1):
         r = idx_i + 1
-        vals = [idx_i, item.equipment_name, item.quantity, round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate), item.unit or "pcs", round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate * item.quantity)]
+        cny_total = item.total_price()
+        php_up = round(cny_total * rate / item.quantity) if item.quantity else 0
+        vals = [idx_i, item.equipment_name, item.quantity, php_up, item.unit or "pcs", round(cny_total * rate)]
         for ci, v in enumerate(vals, 1):
             cell = ws.cell(row=r, column=ci, value=v)
             cell.border = thin
             if ci == 2: cell.alignment = Alignment(wrap_text=True)
             if ci in (3,6): cell.alignment = Alignment(horizontal="center")
-        total_val += round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate * item.quantity)
+        total_val += round(item.total_price() * rate)
     tr = len(items) + 2
     for ci in range(1, 7): ws.cell(row=tr, column=ci).border = thin
     ws.cell(row=tr, column=2, value="Total").font = Font(bold=True)
