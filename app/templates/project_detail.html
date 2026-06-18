@@ -922,7 +922,7 @@ function renderRevenue() {
     h += "<tr><td>" + months[i] + "</td><td class='text-end'>" + dg.toFixed(1) + "</td><td><input class='form-control form-control-sm' style='width:70px' value='" + wd + "' onchange='recalcRevenue()'></td><td class='text-end'>" + monthGen.toFixed(0) + "</td><td class='text-end'>" + Math.round(monthRev).toLocaleString() + "</td></tr>";
   }
   h += "</tbody></table></div>";
-  var finalRev = totalRev * discount;
+  var finalRev = totalRev * discount / 100;
   h += "<div class='row g-2 align-items-center' id='revSummaryRow'><div class='col'><strong id='revTotalGen'>年总发电量: " + totalGen.toFixed(0) + " kWh</strong></div>";
   h += "<div class='col'><strong id='revTotalRev'>年总收益: PHP " + Math.round(totalRev).toLocaleString() + "</strong></div>";
   h += "<div class='col'><strong class='text-success' id='revFirstYear'>首年收益: PHP " + Math.round(finalRev).toLocaleString() + "</strong></div></div>";
@@ -954,7 +954,7 @@ function recalcRevenue() {
       }
     }
   }
-  var finalRev = totalRev * discount;
+  var finalRev = totalRev * discount / 100;
   var genEl = document.getElementById("revTotalGen");
   var revEl = document.getElementById("revTotalRev");
   var frEl = document.getElementById("revFirstYear");
