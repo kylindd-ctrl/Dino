@@ -23,6 +23,7 @@ def create_project():
     if not name:
         return jsonify({"error": "Project name is required"}), 400
 
+    # Parse Google Maps link (now handles redirects)
     geo = parse_google_maps_url(maps_link)
 
     project = Project(
@@ -71,8 +72,18 @@ def update_project(project_id):
         project.address = geo["address"]
     if "status" in data:
         project.status = data["status"]
+    if "exchange_rate" in data:
+        project.exchange_rate = float(data["exchange_rate"])
+    if "electricity_rate" in data:
+        project.electricity_rate = float(data["electricity_rate"])
+    if "revenue_discount" in data:
+        project.revenue_discount = float(data["revenue_discount"])
+    if "total_revenue_php" in data:
+        project.total_revenue_php = float(data["total_revenue_php"])
+    if "total_investment_php" in data:
+        project.total_investment_php = float(data["total_investment_php"])
     if "roof_area" in data:
-        project.roof_area = data["roof_area"]
+        project.roof_area = float(data["roof_area"]) if data["roof_area"] else None
     if "exchg_date" in data:
         project.exchg_date = data["exchg_date"]
     db.session.commit()
@@ -81,8 +92,9 @@ def update_project(project_id):
 @projects_bp.route("/<int:project_id>", methods=["DELETE"])
 def delete_project(project_id):
     project = Project.query.get_or_404(project_id)
+    # Cascade delete all related records (SQLite FK constraint handling)
     from app.models import PVSystem, PVModule, Inverter, SolarResource
-    from app.models import MonthlyGeneration, HourlyGeneration, FinancialResult, Upload
+    from app.models import MonthlyGeneration, HourlyGeneration, FinancialResult, Upload, QuoteItem
 
     for m in PVModule.query.filter_by(project_id=project.id).all():
         db.session.delete(m)
@@ -98,161 +110,83 @@ def delete_project(project_id):
         db.session.delete(hg)
     if project.pv_system:
         db.session.delete(project.pv_system)
+    for qi in QuoteItem.query.filter_by(project_id=project.id).all():
+        db.session.delete(qi)
     if project.solar_resource:
         db.session.delete(project.solar_resource)
+
     db.session.delete(project)
     db.session.commit()
     return jsonify({"message": "Deleted"})
 
-
-# Step 5 financial calculation
-@projects_bp.route("/<int:project_id>/step5/calculate", methods=["POST"])
-def step5_calculate(project_id):
-    project = Project.query.get_or_404(project_id)
-    data = request.get_json() or {}
-    deg_year1 = float(data.get("deg_year1", 2.0))
-    deg_y2plus = float(data.get("deg_y2plus", 0.55))
-    inv_type = data.get("investment_type", "self")
-    ppa_dp = int(data.get("ppa_discount_pct", 70))
-    project.deg_year1 = deg_year1
-    project.deg_y2plus = deg_y2plus
-    project.investment_type = inv_type
-    project.ppa_discount_pct = ppa_dp
-
-    from app.models import MonthlyGeneration, FinancialResult, PVSystem
-
-    # === TOTAL INVESTMENT = sum of quote items (PHP) ===
-    from app.models import QuoteItem
-    quote_items = QuoteItem.query.filter_by(project_id=project_id).all()
-    # total_price() already handles gross_margin, gives sell price
-    total_inv = round(sum(i.total_price() for i in quote_items) * (project.exchange_rate or 8.76)) if quote_items else 0
-
-    # === FIRST YEAR REVENUE from saved revenue data ===
-    # Use the saved total_revenue_php on the project if available
-    first_year_rev = project.total_revenue_php or 0
-
-    # === RAW FIRST YEAR REVENUE (pre-degradation) for display alignment ===
-    raw_y1_revenue = first_year_rev
-
-    # === MONTHLY GENERATION from GSA ===
-    monthly = MonthlyGeneration.query.filter_by(project_id=project_id).order_by(MonthlyGeneration.month).all()
-    pv = PVSystem.query.filter_by(project_id=project_id).first()
-    kwp = pv.capacity_kwp if pv else 0
-    annual_gen = pv.annual_generation_kwh if pv else 0
-
-    # Build base first-year revenue (pre-degradation) from GSA monthly data
-    rate = project.electricity_rate or 13.0
-    disc = project.revenue_discount or 0.9
-    md = {m.month: m for m in monthly}
-    has_monthly = len(monthly) > 0
-    if has_monthly:
-        base_gen = sum(mo.pvtotal_kwh for mo in monthly if mo and mo.pvtotal_kwh)
-        base_y1_revenue = base_gen * rate * disc
-    elif annual_gen:
-        base_y1_revenue = annual_gen * rate * disc
-    else:
-        base_y1_revenue = first_year_rev
-
-    # Apply degradation: Y1 = deg_year1%, Y2+ = deg_y2plus/year compounded
-    y1_factor = 1 - deg_year1 / 100
-    y2plus_factor = 1 - deg_y2plus / 100
-    yearly = []
-    cum = 0
-    for y in range(1, 21):
-        if y == 1:
-            factor = y1_factor
-        else:
-            factor = y1_factor * (y2plus_factor ** (y - 1))
-        rev = base_y1_revenue * factor
-        cum += rev
-        yearly.append({"year": y, "revenue": round(rev, 2), "cumulative": round(cum, 2)})
-
-    first_year_rev = yearly[0]["revenue"]
-
-    y1rev = yearly[0]["revenue"] if yearly else 0
-
-    # Calculate IRR using Newton's method
-    if total_inv > 0 and len(yearly) > 0:
-        def npv(rate):
-            return sum(y["revenue"] / ((1 + rate) ** y["year"]) for y in yearly) - total_inv
-        guess = 0.1
-        for _ in range(100):
-            f = npv(guess)
-            f_prime = sum(-y["year"] * y["revenue"] / ((1 + guess) ** (y["year"] + 1)) for y in yearly)
-            if abs(f_prime) < 1e-10:
-                break
-            new_guess = guess - f / f_prime
-            if abs(new_guess - guess) < 1e-6:
-                guess = new_guess
-                break
-            guess = new_guess
-        irr_value = round(guess, 6) if 0 < guess < 5 else None
-    else:
-        irr_value = None
-
-    # Generate PPA scenarios
-    scenarios = []
-    for dp in [50, 55, 60, 65, 70, 75, 80]:
-        t = sum(y["revenue"] * (dp / 100) for y in yearly[:20])
-        payback = round(20 * (total_inv / t), 1) if t and total_inv else None
-        ppa_irr = round(((t / total_inv) ** (1/20) - 1), 6) if t > 0 and total_inv > 0 else None
-        scenarios.append({"discount_pct": dp, "total_investment": total_inv, "total_revenue_20y": round(t, 2), "payback_years": payback, "irr": ppa_irr})
-
-    # Save FinancialResult for PPT export
-    FinancialResult.query.filter_by(project_id=project.id, scenario="step5").delete()
-    fr = FinancialResult(
-        project_id=project.id, scenario="step5",
-        total_investment_php=total_inv,
-        year1_revenue_php=round(y1rev, 2),
-        revenue_5y_php=round(sum(y["revenue"] for y in yearly[:5]), 2),
-        revenue_20y_php=round(cum, 2),
-        payback_period_years=round(total_inv / y1rev, 1) if y1rev else None,
-        irr=irr_value
-    )
-    db.session.add(fr)
-    if total_inv > 0:
-        project.status = "completed"
-    db.session.commit()
-
-    self_inv = {
-        "total_investment": total_inv,
-        "first_year_revenue": round(raw_y1_revenue, 2),
-        "first_year_revenue_after_deg": round(y1rev, 2),
-        "payback_years": round(total_inv / y1rev, 1) if y1rev else None,
-        "irr": irr_value,
-        "total_revenue_20y": round(cum, 2),
-        "yearly": yearly,
-        "simple_roi_pct": round((cum - total_inv) / total_inv * 100, 1) if total_inv else 0
-    }
-    selected = None
-    for s in scenarios:
-        if s["discount_pct"] == ppa_dp:
-            selected = s
-            selected["first_year_revenue"] = round(raw_y1_revenue * ppa_dp / 100, 2)
-            break
-
-    return jsonify({
-        "self_investment": self_inv,
-        "selected_scenario": selected,
-        "all_scenarios": scenarios,
-        "investment_type": inv_type,
-        "ppa_discount_pct": ppa_dp
-    })
-
-@projects_bp.route("/<int:project_id>/step5", methods=["GET"])
-def step5_get_config(project_id):
-    project = Project.query.get_or_404(project_id)
-    return jsonify({
-        "deg_year1": getattr(project, "deg_year1", 2.0),
-        "deg_y2plus": getattr(project, "deg_y2plus", 0.55),
-        "investment_type": getattr(project, "investment_type", "self"),
-        "ppa_discount_pct": getattr(project, "ppa_discount_pct", 70)
-    })
-
+# --- New: resolve Google Maps link (handles short URLs) ---
 @projects_bp.route("/resolve-link", methods=["POST"])
 def resolve_link():
+    """Resolve a Google Maps URL (including short links) and return coordinates."""
     data = request.get_json()
     if not data or not data.get("url"):
         return jsonify({"error": "URL required"}), 400
+
     result = resolve_maps_url(data["url"])
     return jsonify(result)
+
+
+
+@projects_bp.route("/<int:pid>/fetch-rate", methods=["GET"])
+def fetch_rate(pid):
+    """Fetch current PHP exchange rate."""
+    import urllib.request, json
+    try:
+        # Use exchangerate-api.com free API
+        url = "https://api.exchangerate-api.com/v4/latest/CNY"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        resp = urllib.request.urlopen(req, timeout=5)
+        data = json.loads(resp.read())
+        if data and "rates" in data and "PHP" in data["rates"]:
+            rate = data["rates"]["PHP"]
+            return jsonify({"rate": round(rate, 2)})
+    except Exception as e:
+        pass
+    return jsonify({"rate": 8.76, "note": "Using default rate"})
+
+@projects_bp.route("/<int:pid>/export-php-quote")
+def export_php_quote(pid):
+    """Export PHP Quotation XLSX."""
+    project = Project.query.get_or_404(pid)
+    from app.models import QuoteItem
+    items = QuoteItem.query.filter_by(project_id=pid).order_by(QuoteItem.id).all()
+    import openpyxl, io
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from flask import send_file
+    rate = project.exchange_rate or 8.76
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "PHP Quotation"
+    thin = Border(*[Side(style="thin")]*4)
+    for ci, h in enumerate(["No","Description","Quantity","Unit Price","Unit","Total Price"], 1):
+        cell = ws.cell(row=1, column=ci, value=h)
+        cell.font = Font(bold=True, size=11, color="FFFFFF")
+        cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = thin
+    total_val = 0
+    for idx_i, item in enumerate(items, 1):
+        r = idx_i + 1
+        vals = [idx_i, item.equipment_name, item.quantity, round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate), item.unit or "pcs", round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate * item.quantity)]
+        for ci, v in enumerate(vals, 1):
+            cell = ws.cell(row=r, column=ci, value=v)
+            cell.border = thin
+            if ci == 2: cell.alignment = Alignment(wrap_text=True)
+            if ci in (3,6): cell.alignment = Alignment(horizontal="center")
+        total_val += round(item.unit_price * (1 + (item.gross_margin or 0)/100) * rate * item.quantity)
+    tr = len(items) + 2
+    for ci in range(1, 7): ws.cell(row=tr, column=ci).border = thin
+    ws.cell(row=tr, column=2, value="Total").font = Font(bold=True)
+    ws.cell(row=tr, column=6, value=total_val).font = Font(bold=True)
+    for w, cw in [["A",6],["B",35],["C",10],["D",18],["E",10],["F",18]]:
+        ws.column_dimensions[w].width = cw
+    bio = io.BytesIO()
+    wb.save(bio); bio.seek(0)
+    nm = (project.name or "quotation").replace(" ", "_")
+    return send_file(bio, as_attachment=True, download_name=nm + "_PHP_Quotation.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+

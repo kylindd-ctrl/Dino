@@ -82,8 +82,8 @@ def get_revenue(pid):
             wd = 0
             rev = 0
         months.append({"month": month, "daily_gen": dg, "working_days": wd, "revenue_php": rev})
-    total = sum(x["revenue_php"] for x in months) * (p.revenue_discount or 0.9)
-    return jsonify({"months": months, "discount": p.revenue_discount or 0.9, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
+    total = sum(x["revenue_php"] for x in months) * (p.revenue_discount or 1.0)
+    return jsonify({"months": months, "discount": p.revenue_discount or 1.0, "rate": p.electricity_rate or 13, "total_revenue": round(total, 2)})
 
 # Revenue - PUT (save data) - THIS WAS THE MISSING ROUTE!
 @quotation_bp.route("/api/projects/<int:pid>/revenue", methods=["PUT"])
@@ -102,7 +102,7 @@ def save_revenue(pid):
                 mg.working_days = int(wd)
                 rev = round(int(wd) * (mg.pvtotal_kwh or 0) * (p.electricity_rate or 13) / days_list[idx-1], 2) if int(wd) and mg.pvtotal_kwh else 0
                 mg.revenue_php = rev
-    total_rev = sum(mg.revenue_php or 0 for mg in MonthlyGeneration.query.filter_by(project_id=pid).all()) * (p.revenue_discount or 0.9)
+    total_rev = sum(mg.revenue_php or 0 for mg in MonthlyGeneration.query.filter_by(project_id=pid).all()) * (p.revenue_discount or 1.0)
     p.total_revenue_php = round(total_rev, 2)
     db.session.commit()
     return jsonify({"ok": True, "total_revenue": p.total_revenue_php})
