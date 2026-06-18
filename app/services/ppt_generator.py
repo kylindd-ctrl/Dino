@@ -40,10 +40,28 @@ def generate_proposal(project, config, custom_values=None) -> str:
     from app.models import Upload
     output_folder = config["OUTPUT_FOLDER"]
 
-    uploaded = Upload.query.filter_by(project_id=project.id, file_type="ppt_template").first()
-    if not uploaded or not os.path.exists(uploaded.stored_path):
-        raise FileNotFoundError("No PPT template uploaded. Go to Step 6 and upload a template first.")
-    template_path = uploaded.stored_path
+    uploaded = Upload.query.filter_by(file_type="ppt_template").first()
+    if uploaded and os.path.exists(uploaded.stored_path):
+        template_path = uploaded.stored_path
+    else:
+        global_path = os.path.join(config["UPLOAD_FOLDER"], "_global_ppt", "template.pptx")
+        if os.path.exists(global_path):
+            template_path = global_path
+        else:
+            raise FileNotFoundError("No PPT template uploaded. Go to Step 6 and upload a template first.")
+
+    project_dir = os.path.join(output_folder, str(project.id))
+    os.makedirs(project_dir, exist_ok=True)
+    output_path = os.path.join(project_dir, f"{project.name}_proposal.pptx".replace(" ", "_"))
+    shutil.copy2(template_path, output_path)
+    prs = Presentation(output_path)
+    replacements = _build_replacements(project)
+    if custom_values:
+        for ph, val in custom_values.items():
+            full_ph = "{{" + ph + "}}" if not ph.startswith("{{") else ph
+            if val:
+                replacements[full_ph] = val
+
     # Replace text in all shapes (handles multi-run placeholders)
     for slide in prs.slides:
         for shape in slide.shapes:

@@ -70,10 +70,9 @@ def scan_ppt_placeholders(project_id):
 
 @ppt_bp.route("/api/projects/<int:project_id>/upload-ppt-template", methods=["POST"])
 def upload_ppt_template(project_id):
-    """Upload a PPT template for placeholder replacement."""
-    from werkzeug.utils import secure_filename
-    from app import db
+    """Upload a PPT template (global - shared across all projects)."""
     from app.models import Upload
+    from app import db
     
     project = Project.query.get_or_404(project_id)
     if "file" not in request.files:
@@ -82,23 +81,20 @@ def upload_ppt_template(project_id):
     if not file.filename.endswith('.pptx'):
         return jsonify({"error": "Only .pptx files allowed"}), 400
     
-    # Delete old PPT template uploads
-    for u in Upload.query.filter_by(project_id=project.id, file_type="ppt_template").all():
-        db.session.delete(u)
-    
-    # Save new template
-    upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], str(project.id))
+    # Save globally (replace any existing template)
+    upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "_global_ppt")
     os.makedirs(upload_dir, exist_ok=True)
-    filename = "ppt_template.pptx"
-    filepath = os.path.join(upload_dir, filename)
+    filepath = os.path.join(upload_dir, "template.pptx")
     file.save(filepath)
     
+    # Delete old per-project records, create a global record
+    Upload.query.filter_by(file_type="ppt_template").delete()
     record = Upload(project_id=project.id, file_type="ppt_template",
                     original_filename=file.filename, stored_path=filepath)
     db.session.add(record)
     db.session.commit()
     
-    return jsonify({"message": "PPT template uploaded", "path": filepath}), 200
+    return jsonify({"message": "PPT template uploaded (global)", "path": filepath}), 200
 
 @ppt_bp.route("/api/projects/<int:project_id>/generate-ppt", methods=["POST"])
 def generate_ppt(project_id):
