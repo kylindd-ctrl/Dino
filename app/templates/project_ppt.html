@@ -1,0 +1,37 @@
+﻿{% extends "base.html" %}
+{% block title %}PPT Preview - Solar Proposal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 text-center">
+    <h4 class="mb-3"><i class="bi bi-file-ppt"></i> Proposal PPT</h4>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-5">
+        <i class="bi bi-file-earmark-ppt" style="font-size: 4rem; color: #d04423;"></i>
+        <p class="mt-3" id="pptMessage">Loading...</p>
+        <a id="downloadBtn" class="btn btn-success btn-lg" style="display:none;" href="#">
+          <i class="bi bi-download"></i> Download Proposal
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const projectId = {{ project_id }};
+(async function () {
+  const resp = await fetch(`/api/projects/${projectId}`);
+  const data = await resp.json();
+  if (data.status === "completed") {
+    document.getElementById("pptMessage").textContent = "Your proposal is ready!";
+    document.getElementById("downloadBtn").style.display = "";
+    document.getElementById("downloadBtn").href = `/api/projects/${projectId}/download-ppt`;
+  } else if (data.status === "calculated") {
+    document.getElementById("pptMessage").textContent = "Data is calculated. Click Generate to create the PPT.";
+  } else {
+    document.getElementById("pptMessage").textContent = "Complete all previous steps first.";
+  }
+})();
+</script>
+{% endblock %}

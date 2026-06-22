@@ -1,0 +1,1373 @@
+{% extends "base.html" %}
+{% block title %}Project - {{ _["app_title"] }}{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{{ _["dashboard"] }}</a></li>
+        <li class="breadcrumb-item active">{{ pd.name if pd else _["project_info"] }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<!-- Project Header -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4 class="mb-1" id="projectName">{% if pd %}{{ pd.name }}{% else %}Not found{% endif %}</h4>
+        <p class="text-muted mb-0" id="projectCustomer">{% if pd %}{{ pd.customer_name or "" }}{% endif %}</p>
+      </div>
+      <div>
+        {% if pd %}
+        <span class="badge fs-6 {% if pd.status=='draft' %}bg-secondary{% elif pd.status=='pdf_uploaded' %}bg-info text-dark{% elif pd.status=='gsa_uploaded' %}bg-primary{% elif pd.status=='calculated' %}bg-warning text-dark{% elif pd.status=='completed' %}bg-success{% endif %}">
+          {% if pd.status=='draft' %}Draft{% elif pd.status=='pdf_uploaded' %}PDF Done{% elif pd.status=='gsa_uploaded' %}GSA Done{% elif pd.status=='calculated' %}Calculated{% elif pd.status=='completed' %}Completed{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    {% if pd and pd.latitude %}
+    <div class="row mt-3 small text-muted">
+      <div class="col-md-4"><strong>{{ _["latitude"] }}:</strong> {{ pd.latitude }}</div>
+      <div class="col-md-4"><strong>{{ _["longitude"] }}:</strong> {{ pd.longitude }}</div>
+      <div class="col-md-4"><strong>{{ _["address"] }}:</strong> {{ pd.address or "-" }}</div>
+      <div class="col-md-4"><strong>{{ _["roof_area"] }}:</strong> {{ pd.roof_area or "-" }} m&sup2;</div>
+      <div class="col-md-4"><strong>{{ _["exchg_date"] }}:</strong> {{ pd.exchg_date or "-" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Solar System Config Card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-sun"></i> Solar System</h6>
+      <a class="btn btn-success btn-sm" id="gsaOpenBtn" href="#" target="_blank"
+         onclick="var lat={% if pd and pd.latitude %}{{ pd.latitude }}{% else %}null{% endif %},lng={% if pd and pd.longitude %}{{ pd.longitude }}{% else %}null{% endif %};if(!lat||!lng){alert('Need coords');return false}var cap=document.getElementById('gsaCapacity').value||0,az=document.getElementById('gsaAzimuth').value||180,tilt=document.getElementById('gsaTilt').value||15,typ=document.getElementById('gsaType').value||'medium';this.href='https://globalsolaratlas.info/map?s='+lat+','+lng+',10&pv='+typ+','+az+','+tilt+','+cap;return true">
+        <i class="bi bi-globe"></i> Open GSA
+      </a>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <label class="form-label small">Capacity (kWp)</label>
+        <input type="number" step="0.01" class="form-control form-control-sm" id="gsaCapacity"
+               value="{% if pd and pd.pv_system %}{{ pd.pv_system.capacity_kwp }}{% endif %}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Azimuth (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaAzimuth" value="180">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Tilt (&deg;)</label>
+        <input type="number" class="form-control form-control-sm" id="gsaTilt" value="15">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Type</label>
+        <select class="form-select form-select-sm" id="gsaType">
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+          <option value="small">Small</option>
+          <option value="residential">Residential</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="row g-3">
+
+  <!-- Step 1: Project Info -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">1</span> {{ _["project_info"] }}</h6>
+          <i class="bi {% if pd %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        {% if pd %}
+        <table class="table table-sm table-borderless mb-1 small">
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2" style="width:65px;">{{ _["project_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.name }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["customer_name_label"] }}</td><td class="p-0 text-truncate">{{ pd.customer_name or "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["latitude"] }}</td><td class="p-0">{{ pd.latitude if pd.latitude else "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["longitude"] }}</td><td class="p-0">{{ pd.longitude if pd.longitude else "-" }}</td></tr>
+          <tr><td class="fw-semibold text-nowrap p-0 pe-2">{{ _["address"] }}</td><td class="p-0 text-truncate">{{ pd.address or "-" }}</td></tr>
+        </table>
+        <a href="#" class="text-decoration-none small" onclick="showEditProject()"><i class="bi bi-pencil"></i> {{ _["edit"] }}</a>
+        {% else %}
+        <p class="small text-muted">{{ _["project_name"] }} + {{ _["google_maps_link_label"] }}.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: OpenSolar PDF -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">2</span> {{ _["opensolar_pdf"] }}</h6>
+          <i class="bi {% if pd and pd.pv_system %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        {% if pd and pd.pv_system %}
+        <div class="small">
+          <table class="table table-sm table-borderless mb-1">
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3" style="width:90px;">1. {{ _["system_capacity"] }}</td><td class="p-0 text-success">{{ pd.pv_system.capacity_kwp }} kWp</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">2. {{ _["module_count"] }}</td><td class="p-0 text-success">{{ pd.module.quantity if pd.module else "-" }} pcs</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">3. {{ _["module_model"] }}</td><td class="p-0 text-success">{{ pd.module.brand if pd.module else "" }} {{ pd.module.model if pd.module else "-" }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">4. {{ _["inv_count"] }}</td><td class="p-0 text-success">{{ pd.inverter.quantity if pd.inverter else "-" }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">5. {{ _["inv_model"] }}</td><td class="p-0 text-success">{{ pd.inverter.brand if pd.inverter else "" }} {{ pd.inverter.model if pd.inverter else "-" }}</td></tr>
+            <tr><td class="fw-semibold text-nowrap p-0 pe-3">6. {{ _["co2_reduction"] }}</td><td class="p-0 text-success">{{ pd.pv_system.co2_reduction_tons }} t/yr</td></tr>
+          </table>
+          <a href="#" class="text-decoration-none small" onclick="togglePdfUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
+        </div>
+        {% endif %}
+        <div id="step2Upload" class="mt-2" style="{% if pd and pd.pv_system %}display:none{% endif %}">
+          <form enctype="multipart/form-data" onsubmit="return uploadPdf(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="pdfFile" accept=".pdf"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <div id="step2Progress" class="mt-2 small" style="display:none">
+              <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: GSA Solar Data -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-primary me-1">3</span> {{ _["gsa_solar_data"] }}</h6>
+          <i class="bi {% if pd and pd.solar %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        {% if pd and pd.solar %}
+        <div class="small">
+          <div class="fw-semibold">{{ _["ghi"] }}: {{ pd.solar.ghi }} kWh/m&sup2;</div>
+          {% if pd.monthly %}
+          <div class="d-flex flex-wrap mt-1">
+            {% for m in pd.monthly %}
+            <span class="me-2" style="min-width:100px;white-space:nowrap">
+              {% if m.m < 10 %}0{% endif %}{{ m.m }}{{ "月" if _._current_lang == "zh" else "/" }} {{ m.v }} kWh/{{ "天" if _._current_lang == "zh" else "day" }}
+            </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <a href="#" class="text-decoration-none small" onclick="toggleGsaUpload()"><i class="bi bi-arrow-repeat"></i> Replace</a>
+        </div>
+        {% endif %}
+        <div id="step3Upload" class="mt-2" style="{% if pd and pd.solar %}display:none{% endif %}">
+          <form enctype="multipart/form-data" onsubmit="return uploadGsa(this)">
+            <div class="mb-2"><input type="file" class="form-control form-control-sm" id="gsaFile" accept=".xlsx"></div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> {{ _["upload_parse"] }}</button>
+            <div id="step3Progress" class="mt-2 small" style="display:none">
+              <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+          <!-- Step 4: Quotation & Revenue -->
+  <div class="col-12 mb-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0"><span class="badge bg-primary me-1">4</span> 报价单 &amp; 收益计算</h6>
+        <div>
+          <button class="btn btn-outline-info btn-sm" onclick="showPriceLib()"><i class="bi bi-book"></i> 价格库</button>
+          <button class="btn btn-outline-success btn-sm ms-1" onclick="showRevenue()"><i class="bi bi-calculator"></i> 收益计算</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">请先在价格库中添加设备型号和单价，然后点击"添加设备"选择设备加入报价单。</p>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle mb-3" id="quoteTable">
+            <thead class="table-light"><tr><th>No</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Margin</th><th>Cost</th><th>Price</th><th></th></tr></thead>
+            <tbody id="quoteBody">
+              {% for i in items %}
+              <tr data-id="{{ i.id }}">
+                <td>{{ loop.index }}</td>
+                <td><input class="form-control form-control-sm name-input" value="{{ i.equipment_name }}"></td>
+                <td><input class="form-control form-control-sm qty-input" value="{{ i.quantity }}"></td>
+                <td><input class="form-control form-control-sm price-input" value="{{ i.unit_price }}"></td>
+                <td><input class="form-control form-control-sm margin-input" value="{{ i.gross_margin }}"></td>
+                <td class="text-end cost-cell">{{ i.total_cost }}</td>
+                <td class="text-end text-success price-cell">{{ i.total_price }}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="delQuote({{ i.id }})"><i class="bi bi-x"></i></button></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="table-secondary fw-bold">
+                <td colspan="5" class="text-end">Total (CNY):</td>
+                <td class="text-end">{{ totals.cost }}</td>
+                <td class="text-end text-success">{{ totals.price }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap"><button class="btn btn-sm btn-primary" onclick="addQuoteRow()"><i class="bi bi-plus"></i> 添加设备</button><div class="d-flex align-items-center gap-1 ms-3"><span class="small">汇率(CNY→PHP):</span><input type="number" step="0.01" class="form-control form-control-sm" id="exchangeRate" value="{{ pd.exchange_rate or 8.76 }}" style="width:80px" onchange="updatePhpPrices()"><input type="date" class="form-control form-control-sm" id="exchangeRateDate" style="width:140px"><button class="btn btn-sm btn-info" onclick="fetchRate()"><i class="bi bi-arrow-repeat"></i> 获取</button></div></div>
+        <hr>
+        <h6>PHP Quotation</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm" id="phpQuoteTable">
+            <thead class="table-light"><tr><th>No</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Unit</th><th>Total</th></tr></thead>
+            <tbody id="phpQuoteBody">
+              {% for i in items %}
+              <tr><td>{{ loop.index }}</td><td>{{ i.equipment_name }}</td><td>{{ i.quantity }}</td><td class="php-unit-price">{{ (i.unit_price * (1 + (i.gross_margin or 0)/100) * (pd.exchange_rate or 8.76))|int }}</td><td>pcs</td><td class="php-row-total">{{ (i.unit_price * (1 + (i.gross_margin or 0)/100) * (pd.exchange_rate or 8.76) * i.quantity)|int }}</td></tr>
+              {% else %}
+              <tr><td colspan="5" class="text-muted text-center py-3">暂无设备</td></tr>
+              {% endfor %}
+            </tbody>
+<tfoot>
+              <tr class="table-secondary fw-bold">
+                <td colspan="5" class="text-end">TOTAL:</td>
+                <td class="text-end" id="phpGrandTotal">{{ totals.get("php_total", 0)|default(0)|int }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <a href="/api/projects/" onclick="window.location.href='/api/projects/' + _editData.id + '/export-php-quote';return false" class="btn btn-sm btn-success"><i class="bi bi-download"></i> 导出 PHP 报价单</a>
+      </div>
+    </div>
+  </div>
+
+<!-- <!-- Step 5: Financial Calculation -->
+  <div class="col-12 mb-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0"><span class="badge bg-warning text-dark me-1">5</span> 财务计算</h6>
+        <div>
+          <span class="badge bg-light text-dark me-1" id="step5Status">...</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Investment Type Switcher -->
+        <div class="btn-group mb-3" role="group">
+          <input type="radio" class="btn-check" name="invType" id="invSelf" value="self" checked onchange="step5ToggleType()">
+          <label class="btn btn-outline-primary btn-sm" for="invSelf"><i class="bi bi-building"></i> 自投</label>
+          <input type="radio" class="btn-check" name="invType" id="invPPA" value="ppa" onchange="step5ToggleType()">
+          <label class="btn btn-outline-primary btn-sm" for="invPPA"><i class="bi bi-currency-exchange"></i> 20年 PPA</label>
+        </div>
+
+        <div class="row g-3">
+          <!-- LEFT COLUMN: Inputs + Results -->
+          <div class="col-lg-6">
+            <!-- Degradation Inputs -->
+            <div class="row g-2 mb-3">
+              <div class="col-auto">
+                <label class="form-label small mb-0">首年衰减:</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" step="0.1" class="form-control" id="step5Deg1" value="2.0" style="width:70px">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small mb-0">第2年+ 衰减:</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" step="0.01" class="form-control" id="step5Deg2" value="0.55" style="width:70px">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PPA Discount (visible only when PPA is selected) -->
+            <div id="ppaDiscountGroup" class="mb-3" style="display:none">
+              <label class="form-label small mb-1">PPA Discount (%)</label>
+
+              <div class="d-flex flex-wrap gap-1 mb-1">
+                <span class="btn btn-sm btn-outline-secondary ppa-preset active" data-val="50" onclick="step5SetPPA(this)">50%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="55" onclick="step5SetPPA(this)">55%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="60" onclick="step5SetPPA(this)">60%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="65" onclick="step5SetPPA(this)">65%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="70" onclick="step5SetPPA(this)">70%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="75" onclick="step5SetPPA(this)">75%</span>
+                <span class="btn btn-sm btn-outline-secondary ppa-preset" data-val="80" onclick="step5SetPPA(this)">80%</span>
+              </div>
+              <input type="range" class="form-range" id="ppaDiscountSlider" min="50" max="80" value="70" oninput="step5SliderPPA(this)">
+              <small class="text-muted" id="ppaDiscountLabel">当前折让: 70%</small>
+            </div>
+
+            <!-- Calculate Button -->
+            <button class="btn btn-warning mb-3" id="step5CalcBtn" onclick="step5Calculate()">
+              <i class="bi bi-calculator"></i> 计算
+            </button>
+            <div id="step5Progress" class="spinner-border spinner-border-sm text-warning ms-2" style="display:none"></div>
+
+            <!-- Results Card -->
+            <div id="step5Results" class="card bg-light" style="display:none">
+              <div class="card-body py-2">
+                <div class="row g-1 small" id="step5ResultGrid"></div>
+              </div>
+            </div>
+
+            <!-- Self Investment Details (visible after calc) -->
+            <div id="step5SelfDetails" class="mt-2" style="display:none"></div>
+
+            <!-- PPA Scenario Table (visible after calc for PPA mode) -->
+            <div id="step5PPATable" class="mt-2" style="display:none">
+              <h6 class="small fw-bold">多场景分析</h6>
+              <div class="table-responsive" style="max-height:250px">
+                <table class="table table-sm table-bordered small">
+                  <thead class="table-light">
+                    <tr><th>Discount</th><th>Payback</th><th>20yr Revenue</th><th>IRR</th></tr>
+                  </thead>
+                  <tbody id="ppaScenarioBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Charts -->
+          <div class="col-lg-6">
+            <div id="step5Charts" style="display:none">
+              <!-- Chart A -->
+              <div class="card mb-2">
+                <div class="card-body p-2">
+                  <h6 class="small fw-bold mb-1">Payback Period vs PPA Discount</h6>
+                  <canvas id="chartPayback" height="180"></canvas>
+                </div>
+              </div>
+              <!-- Chart B -->
+              <div class="card">
+                <div class="card-body p-2">
+                  <h6 class="small fw-bold mb-1">Revenue and IRR Analysis</h6>
+                  <canvas id="chartRevenue" height="180"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Yearly Cashflow Table -->
+        <div id="step5YearlyTable" class="mt-3" style="display:none">
+          <h6 class="small fw-bold">年度现金流</h6>
+          <div class="table-responsive" style="max-height:300px">
+            <table class="table table-sm table-bordered small">
+              <thead class="table-light sticky-top">
+                <tr><th>年份</th><th>年收益 (PHP)</th><th>累计现金流 (PHP)</th></tr>
+              </thead>
+              <tbody id="step5YearlyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- <!-- Step 6: Generate PPT -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <h6 class="card-title"><span class="badge bg-success me-1">6</span> Generate PPT</h6>
+          <i class="bi {% if pd and pd.status == 'completed' %}bi-check-circle-fill text-success{% else %}bi-circle text-secondary{% endif %}"></i>
+        </div>
+        <p class="small text-muted">Generate a professional proposal PPT from project data.</p>
+        <button class="btn btn-sm btn-success" id="pptBtn" onclick="genPpt()"><i class="bi bi-file-ppt"></i> Generate Proposal</button>
+        <div id="pptStatus" class="small mt-1"></div>
+      </div>
+    </div>
+  </div>
+
+          {% if not pd or not pd.pv_system %}
+          {{ _["no_data"] }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil"></i> {{ _["edit_project"] }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <form id="editProjectForm" onsubmit="return saveEdit()">
+          <div class="mb-3"><label class="form-label">{{ _["project_name_label"] }} <span class="text-danger">*</span></label><input type="text" class="form-control" id="editName" required></div>
+          <div class="mb-3"><label class="form-label">{{ _["customer_name_label"] }}</label><input type="text" class="form-control" id="editCustomer"></div>
+          <div class="mb-3">
+            <label class="form-label">{{ _["google_maps_link_label"] }}</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="editMapsLink" autocomplete="off">
+              <a class="btn btn-outline-success" id="editMapsJumpBtn" href="javascript:void(0)" target="_blank" onclick="var d=_editData;if(d&&d.latitude){this.href='https://www.google.com/maps?q='+d.latitude+','+d.longitude;return true}alert('No coordinates');return false" style="opacity:0.5"><i class="bi bi-geo-alt-fill"></i></a>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Roof Area (m&sup2;)</label>
+              <input type="number" step="0.1" class="form-control" id="editRoofArea" placeholder="e.g. 5000">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Exchange Rate Date</label>
+              <input type="date" class="form-control" id="editExchgDate">
+            </div>
+          </div>
+          <div class="mb-3" id="editGeoPreview" style="display:none;">
+            <div class="alert alert-success border-success py-2">
+              <i class="bi bi-check-circle-fill text-success me-1"></i>
+              <strong>{{ _["parse_success"] }}!</strong>
+              <table class="table table-sm table-borderless mb-0 small mt-1">
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["latitude"] }}:</td><td class="p-0"><code id="editLatPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["longitude"] }}:</td><td class="p-0"><code id="editLngPreview" class="text-success"></code></td></tr>
+                <tr><td class="fw-semibold p-0 pe-2">{{ _["address"] }}:</td><td class="p-0"><span id="editAddrPreview" class="text-success"></span></td></tr>
+              </table>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _["cancel"] }}</button>
+        <button type="button" class="btn btn-primary" onclick="saveEdit()"><i class="bi bi-check-lg"></i> {{ _["save"] }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Price Library Modal -->
+<div class="modal fade" id="priceLibModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-book"></i> 价格库</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive mb-3" style="max-height:400px">
+          <table class="table table-sm table-hover" id="libTable">
+            <thead class="table-light"><tr><th>设备名称</th><th>型号</th><th>单价</th><th style="width:80px"></th></tr></thead>
+            <tbody id="libBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="addLib()"><i class="bi bi-plus"></i> 添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Quote Item Modal -->
+<div class="modal fade" id="addQuoteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">添加设备</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">设备</label>
+          <select class="form-select" id="aqEquipment"><option value="">-- 选择设备 --</option></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">数量</label>
+          <input type="number" class="form-control" id="aqQuantity" value="1">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="saveQuoteRow()"><i class="bi bi-check-lg"></i> 添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Modal -->
+<div class="modal fade" id="revenueModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calculator"></i> 收益计算</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="revenueBody">
+        <p class="text-muted">加载中...</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveRevenue()"><i class="bi bi-check-lg"></i> 保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.onerror = function(msg, url, line) {
+  console.error("JS Error: " + msg + " at line " + line);
+  // Don't let errors break all functionality
+  return true;
+};
+function safeModal(modalId) {
+  var el = document.getElementById(modalId);
+  if (!el) { alert('Modal not found: ' + modalId); return null; }
+  try { if (typeof bootstrap !== 'undefined' && bootstrap.Modal) return new bootstrap.Modal(el); } catch(e) {}
+  el.style.display = 'block'; el.classList.add('show');
+  document.body.classList.add('modal-open');
+  var bd = document.createElement('div'); bd.className = 'modal-backdrop fade show';
+  document.body.appendChild(bd);
+  return { hide: function() {
+    el.style.display = 'none'; el.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    var bk = document.querySelector('.modal-backdrop'); if (bk) bk.remove();
+  }};
+}
+var _lib = {{ lib|tojson }};
+var _pid = {{ pd.id if pd else 0 }};
+var _monthlyData = {{ pd.monthly|tojson if pd and pd.monthly else [] }};
+var _editData = {% if pd %}{{ pd | tojson }}{% else %}null{% endif %};
+
+function togglePdfUpload() {
+  var el = document.getElementById("step2Upload");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function toggleGsaUpload() {
+  var el = document.getElementById("step3Upload");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function showEditProject() {
+  try {
+    var d = _editData;
+    if (!d) { alert("No project data"); return; }
+    document.getElementById("editName").value = d.name || "";
+    document.getElementById("editCustomer").value = d.customer_name || "";
+    document.getElementById("editMapsLink").value = d.google_maps_link || "";
+    var raEl = document.getElementById("editRoofArea"); if (raEl) raEl.value = d.roof_area || "";
+    var exEl = document.getElementById("editExchgDate"); if (exEl) exEl.value = d.exchg_date || "";
+    var btn = document.getElementById("editMapsJumpBtn");
+    if (d.latitude) {
+      document.getElementById("editLatPreview").textContent = d.latitude;
+      document.getElementById("editLngPreview").textContent = d.longitude;
+      var aEl = document.getElementById("editAddrPreview");
+      if (aEl) aEl.textContent = d.address || "";
+      btn.href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
+      btn.style.opacity = "1";
+    } else {
+      btn.removeAttribute("href");
+      btn.style.opacity = "0.5";
+    }
+    if (typeof bootstrap === "undefined") { alert("Bootstrap not loaded"); return; }
+    safeModal("editProjectModal");
+  } catch(e) {
+    alert("Edit error: " + e.message);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  var mapsInput = document.getElementById("editMapsLink");
+  if (mapsInput) {
+    mapsInput.addEventListener("input", function() {
+      var u = this.value.trim();
+      var m = u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || u.match(/\/search\/(-?\d+\.\d+),\+?(-?\d+\.\d+)/);
+      if (m) {
+        var lat = parseFloat(m[1] || m[0]), lng = parseFloat(m[2] || m[1]);
+        document.getElementById("editLatPreview").textContent = lat.toFixed(6);
+        document.getElementById("editLngPreview").textContent = lng.toFixed(6);
+        document.getElementById("editGeoPreview").style.display = "block";
+        var g = new XMLHttpRequest();
+        g.open("GET", "https://nominatim.openstreetmap.org/reverse?lat=" + lat + "&lon=" + lng + "&format=json&accept-language=en", true);
+        g.onreadystatechange = function() {
+          if (g.readyState == 4 && g.status == 200) {
+            try {
+              var d = JSON.parse(g.responseText);
+              if (d && d.display_name) document.getElementById("editAddrPreview").textContent = d.display_name;
+            } catch(e) {}
+          }
+        };
+        g.send();
+        document.getElementById("editMapsJumpBtn").href = "https://www.google.com/maps?q=" + lat + "," + lng;
+        document.getElementById("editMapsJumpBtn").style.opacity = "1";
+      } else if (u.includes("goo.gl") || u.includes("maps.app.goo")) {
+        var x = new XMLHttpRequest();
+        x.open("POST", "/api/projects/resolve-link", true);
+        x.setRequestHeader("Content-Type", "application/json");
+        x.onreadystatechange = function() {
+          if (x.readyState == 4 && x.status == 200) {
+            try {
+              var d = JSON.parse(x.responseText);
+              if (d.latitude) {
+                document.getElementById("editLatPreview").textContent = d.latitude;
+                document.getElementById("editLngPreview").textContent = d.longitude;
+                document.getElementById("editAddrPreview").textContent = d.address || "";
+                document.getElementById("editGeoPreview").style.display = "block";
+                document.getElementById("editMapsJumpBtn").href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
+                document.getElementById("editMapsJumpBtn").style.opacity = "1";
+              }
+            } catch(e) {}
+          }
+        };
+        x.send(JSON.stringify({url: u}));
+      } else {
+        document.getElementById("editGeoPreview").style.display = "none";
+      }
+    });
+  }
+});
+
+function saveEdit() {
+  var name = document.getElementById("editName").value.trim();
+  if (!name) { alert("Name required"); return false; }
+  var x = new XMLHttpRequest();
+  x.open("PUT", "/api/projects/" + _editData.id, true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() {
+    if (x.readyState == 4 && x.status == 200) {
+      var m = safeModal("editProjectModal"); if (m && m.hide) m.hide();
+      location.reload();
+    }
+  };
+  x.send(JSON.stringify({
+    name: name,
+    customer_name: document.getElementById("editCustomer").value.trim(),
+    google_maps_link: document.getElementById("editMapsLink").value.trim(),
+    roof_area: parseFloat(document.getElementById("editRoofArea").value) || null,
+    exchg_date: document.getElementById("editExchgDate").value || ""
+  }));
+  return false;
+}
+
+function uploadPdf(form) {
+  var file = document.getElementById("pdfFile").files[0];
+  if (!file) { alert("Select PDF."); return false; }
+  var fd = new FormData(); fd.append("file", file);
+  document.getElementById("step2Progress").style.display = "";
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _editData.id + "/upload/pdf", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("step2Progress").style.display = "none";
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Upload failed")); } catch(ex) { alert("Upload failed"); } }
+    }
+  };
+  x.send(fd);
+  return false;
+}
+
+function uploadGsa(form) {
+  var file = document.getElementById("gsaFile").files[0];
+  if (!file) { alert("Select Excel."); return false; }
+  var fd = new FormData(); fd.append("file", file);
+  document.getElementById("step3Progress").style.display = "";
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _editData.id + "/upload/gsa", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("step3Progress").style.display = "none";
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Upload failed")); } catch(ex) { alert("Upload failed"); } }
+    }
+  };
+  x.send(fd);
+  return false;
+}
+
+function runCalc() {
+  document.getElementById("calcBtn").disabled = true;
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _pid + "/step5/calculate", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      document.getElementById("calcBtn").disabled = false;
+      if (x.status == 200) location.reload();
+      else { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Calc failed")); } catch(ex) { alert("Calc failed"); } }
+    }
+  };
+  x.send();
+}
+
+function genPpt() {
+  if (!confirm("Generate PPT?")) return;
+  var btn = document.getElementById("pptBtn");
+  if (btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/{{ pd.id if pd else 0 }}/generate-ppt", true);
+  x.onreadystatechange = function() {
+    if (btn) { btn.disabled = false; btn.innerHTML = "<i class="bi bi-file-ppt"></i> Generate Proposal"; }
+    if (x.readyState == 4 && x.status == 200) {
+      try {
+        var d = JSON.parse(x.responseText);
+        if (d.download_url) {
+          var a = document.createElement("a");
+          a.href = d.download_url;
+          a.download = d.filename || "proposal.pptx";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+      } catch(e) {}
+      location.reload();
+    }
+    else if (x.readyState == 4) { try { var e = JSON.parse(x.responseText); alert("Error: " + (e.error || "Gen failed")); } catch(ex) { alert("Gen failed"); } }
+  };
+  x.send();
+}
+
+
+// ==== Quotation Features ====
+var _revData = [];
+
+function showPriceLib() {
+  try {
+    var el = document.getElementById("priceLibModal");
+    if (!el) { alert("价格库弹窗不存在"); return; }
+    safeModal("priceLibModal");
+    refreshLibTable();
+  } catch(e) { alert("价格库出错: " + e.message); }
+}
+
+function refreshLibTable() {
+  var x = new XMLHttpRequest();
+  x.open("GET", "/api/price-library", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4 && x.status == 200) {
+      var lib = JSON.parse(x.responseText);
+      var tbody = document.getElementById("libBody"); tbody.innerHTML = "";
+      for (var i = 0; i < lib.length; i++) {
+        var l = lib[i];
+        tbody.innerHTML += "<tr><td>" + l.equipment_name + "</td><td>" + (l.model || "") + "</td><td>" + l.unit_price + "</td><td><button class='btn btn-sm btn-outline-danger' onclick='delLib(" + l.id + ")'><i class='bi bi-x'></i></button></td></tr>";
+      }
+    }
+  };
+  x.send();
+}
+
+function addLib() {
+  var name = prompt("设备名称:");
+  if (!name) return;
+  var model = prompt("型号:");
+  var price = parseFloat(prompt("单价(CNY):"));
+  if (isNaN(price)) return;
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/price-library", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 201) refreshLibTable(); };
+  x.send(JSON.stringify({equipment_name: name, model: model||"", unit_price: price}));
+}
+
+function delLib(id) {
+  if (!confirm("确定删除?")) return;
+  var x = new XMLHttpRequest();
+  x.open("DELETE", "/api/price-library/" + id, true);
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) refreshLibTable(); };
+  x.send();
+}
+
+function addQuoteRow() {
+  try {
+    var sel = document.getElementById("aqEquipment");
+    if (!sel) return;
+  sel.innerHTML = "<option value=''>-- 选择设备 --</option>";
+  var x = new XMLHttpRequest();
+  x.open("GET", "/api/price-library", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4 && x.status == 200) {
+      var lib = JSON.parse(x.responseText);
+      for (var i = 0; i < lib.length; i++) {
+        sel.innerHTML += "<option value='" + lib[i].equipment_name + "'>" + lib[i].equipment_name + " - " + (lib[i].model||"") + "</option>";
+      }
+      safeModal("addQuoteModal");
+    } else if (x.readyState == 4) {
+      alert("请先在价格库中添加设备");
+    }
+  };
+  x.send();
+}
+
+function saveQuoteRow() {
+  var name = document.getElementById("aqEquipment").value;
+  if (!name) { alert("请选择设备"); return; }
+  var qty = parseInt(document.getElementById("aqQuantity").value) || 1;
+  var price = 0;
+  var xl = new XMLHttpRequest();
+  xl.open("GET","/api/price-library",false);
+  xl.send();
+  if(xl.status==200) {
+    try {
+      var lib = JSON.parse(xl.responseText);
+      for(var i=0;i<lib.length;i++) {
+        if(lib[i].equipment_name==name) { price = lib[i].unit_price; break; }
+      }
+    } catch(e) {}
+  }
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _editData.id + "/quote", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 201) { var m2 = safeModal("addQuoteModal"); if (m2 && m2.hide) m2.hide(); location.reload(); } };
+  x.send(JSON.stringify({equipment_name: name, model: "", quantity: qty, unit_price: price, gross_margin: 0}));
+}
+
+function getUnitPrice(name) {
+  var x = new XMLHttpRequest();
+  x.open("GET","/api/price-library",false);
+  x.send();
+  if(x.status==200) {
+    var lib = JSON.parse(x.responseText);
+    for(var i=0;i<lib.length;i++) if(lib[i].equipment_name==name) return lib[i].unit_price;
+  }
+  return 0;
+}
+
+function delQuote(id) {
+  if (!confirm("确定删除?")) return;
+  var x = new XMLHttpRequest();
+  x.open("DELETE", "/api/projects/" + _pid + "/quote/" + id, true);
+  x.onreadystatechange = function() { if (x.readyState == 4 && x.status == 200) location.reload(); };
+  x.send();
+}
+
+function showRevenue() {
+  try {
+    var btn = event && event.target ? event.target : null;
+    if (btn) { btn.disabled = true; btn.innerHTML = "加载中..."; }
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/projects/" + (_editData ? _editData.id : _pid) + "/revenue", true);
+    x.onreadystatechange = function() {
+      if (btn) { btn.disabled = false; btn.innerHTML = "<i class=\"bi bi-calculator\"></i> 收益计算"; }
+      if (x.readyState == 4) {
+        if (x.status == 200) {
+          try { _revData = JSON.parse(x.responseText); } catch(e) { _revData = {months:[], discount:1, rate:13, total_revenue:0}; }
+        } else {
+          _revData = {months:[], discount:1, rate:13, total_revenue:0};
+        }
+        renderRevenue();
+        var modal = document.getElementById("revenueModal");
+        if (modal) safeModal("revenueModal");
+        else alert("收益弹窗不存在，请刷新页面");
+      }
+    };
+    x.send();
+  } catch(e) { alert("收益计算出错: " + e.message); }
+}
+
+function renderRevenue() {
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+  var mData = (_revData && _revData.months) || [];
+  var discount = (_revData && _revData.discount) || 1;
+  var elecRate = (_revData && _revData.rate) || 13;
+  var h = "<div class='mb-3 row g-2 align-items-center'><div class='col-auto'><label class='form-label small mb-0'>电价 (PHP/kWh):</label></div><div class='col-auto'><input type='number' step='0.01' class='form-control form-control-sm' id='revRate' style='width:100px' value='" + elecRate + "' onchange='recalcRevenue()'></div>";
+  h += "<div class='col-auto'><label class='form-label small mb-0'>收益折扣:</label></div><div class='col-auto'><input type='number' step='0.01' class='form-control form-control-sm' id='revDiscount' style='width:80px' value='" + discount + "' onchange='recalcRevenue()'></div></div>";
+  h += "<div class='table-responsive'><table class='table table-sm table-bordered'><thead class='table-light'><tr><th>Month</th><th>日发电量 kWh</th><th>工作日</th><th>月发电量 kWh</th><th>月收益 PHP</th></tr></thead><tbody>";
+  var totalGen = 0;
+  var totalRev = 0;
+  for (var i = 0; i < 12; i++) {
+    var m = mData[i] || {month: i+1, daily_gen: 0, working_days: 0, revenue_php: 0};
+    var dg = m.daily_gen || 0;
+    var wd = m.working_days || daysInMonth[i];
+    var monthGen = dg * wd;
+    var monthRev = monthGen * elecRate;
+    totalGen += monthGen;
+    totalRev += monthRev;
+    h += "<tr><td>" + months[i] + "</td><td class='text-end'>" + dg.toFixed(1) + "</td><td><input class='form-control form-control-sm' style='width:70px' value='" + wd + "' onchange='recalcRevenue()'></td><td class='text-end'>" + monthGen.toFixed(0) + "</td><td class='text-end'>" + Math.round(monthRev).toLocaleString() + "</td></tr>";
+  }
+  h += "</tbody></table></div>";
+  var finalRev = totalRev * discount;
+  h += "<div class='row g-2 align-items-center' id='revSummaryRow'><div class='col'><strong id='revTotalGen'>年总发电量: " + totalGen.toFixed(0) + " kWh</strong></div>";
+  h += "<div class='col'><strong id='revTotalRev'>年总收益: PHP " + Math.round(totalRev).toLocaleString() + "</strong></div>";
+  h += "<div class='col'><strong class='text-success' id='revFirstYear'>首年收益: PHP " + Math.round(finalRev).toLocaleString() + "</strong></div></div>";
+  document.getElementById("revenueBody").innerHTML = h;
+}
+
+function recalcRevenue() {
+  var rate = parseFloat(document.getElementById("revRate").value) || 13;
+  var discount = parseFloat(document.getElementById("revDiscount").value) || 1;
+  var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+  var mData = (_revData && _revData.months) || [];
+  var inputs = document.querySelectorAll("#revenueBody input");
+  var totalGen = 0;
+  var totalRev = 0;
+  for (var i = 0; i < 12; i++) {
+    var m = mData[i] || {daily_gen: 0};
+    var dg = m.daily_gen || 0;
+    var wd = parseInt(inputs[i + 2].value) || daysInMonth[i];
+    var monthGen = dg * wd;
+    var monthRev = monthGen * rate;
+    totalGen += monthGen;
+    totalRev += monthRev;
+    var rows = document.querySelectorAll("#revenueBody tbody tr");
+    if (rows[i]) {
+      var cells = rows[i].querySelectorAll("td");
+      if (cells.length >= 5) {
+        cells[3].textContent = Math.round(monthGen).toString();
+        cells[4].textContent = "PHP " + Math.round(monthRev).toLocaleString();
+      }
+    }
+  }
+  var finalRev = totalRev * discount;
+  var genEl = document.getElementById("revTotalGen");
+  var revEl = document.getElementById("revTotalRev");
+  var frEl = document.getElementById("revFirstYear");
+  if (genEl) genEl.textContent = "年总发电量: " + Math.round(totalGen).toLocaleString() + " kWh";
+  if (revEl) revEl.textContent = "年总收益: PHP " + Math.round(totalRev).toLocaleString();
+  if (frEl) frEl.textContent = "首年收益: PHP " + Math.round(finalRev).toLocaleString();
+  if (_revData) {
+    _revData.discount = discount;
+    _revData.rate = rate;
+    _revData.computed_total = Math.round(finalRev);
+    for (var j = 0; j < 12 && j < mData.length; j++) {
+      if (!_revData.months[j]) _revData.months[j] = {};
+      _revData.months[j].working_days = parseInt(inputs[j + 2].value) || daysInMonth[j];
+    }
+  }
+}
+
+function saveRevenue() {
+  recalcRevenue();
+  var data = {
+    discount: (_revData && _revData.discount) || 1,
+    rate: (_revData && _revData.rate) || 13,
+    working_days: [],
+    total_revenue: (_revData && _revData.computed_total) || 0
+  };
+  var inputs = document.querySelectorAll("#revenueBody input");
+  for (var i = 0; i < 12; i++) {
+    data.working_days.push(parseInt(inputs[i + 2].value) || 0);
+  }
+  var x = new XMLHttpRequest();
+  x.open("PUT", "/api/projects/" + _editData.id + "/revenue", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      if (x.status == 200) {
+        var m_r = safeModal("revenueModal"); if (m_r && m_r.hide) m_r.hide();ide();
+        location.reload();
+      } else {
+        alert("保存失败: " + x.status);
+      }
+    }
+  };
+  x.send(JSON.stringify(data));
+}
+
+function fetchRate() {
+  var btn = (typeof event !== 'undefined' && event && event.target) ? event.target : document.querySelector("[onclick*='fetchRate']");
+  if (btn) { btn.disabled = true; btn.innerHTML = "获取中..."; }
+  var x = new XMLHttpRequest();
+  x.open("GET", "/api/projects/" + _editData.id + "/fetch-rate", true);
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      if (btn) { btn.disabled = false; btn.innerHTML = "获取汇率"; }
+      if (x.status == 200) {
+        try {
+          var d = JSON.parse(x.responseText);
+          var inp = document.getElementById("exchangeRate");
+          if (inp) inp.value = d.rate;
+          var dateInp = document.getElementById("exchangeRateDate");
+          if (dateInp) dateInp.value = new Date().toISOString().split("T")[0];
+          if (typeof updatePhpPrices === "function") updatePhpPrices();
+        } catch(e) {}
+      }
+    }
+  };
+  x.send();
+}
+
+
+// Auto-save quote row changes
+var _saveTimer = null;
+document.getElementById('quoteTable').addEventListener('change', function(e) {
+  var tr = e.target.closest('tr');
+  if (!tr || !tr.dataset.id) return;
+  var qid = tr.dataset.id;
+  var inputs = tr.querySelectorAll('input');
+  if (inputs.length < 4) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    var x = new XMLHttpRequest();
+    x.open('PUT', '/api/projects/' + _pid + '/quote/' + qid, true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.send(JSON.stringify({
+      equipment_name: inputs[0].value,
+      quantity: parseInt(inputs[1].value) || 1,
+      unit_price: parseFloat(inputs[2].value) || 0,
+      gross_margin: parseFloat(inputs[3].value) || 0
+    }));
+  }, 500);
+});
+
+// Margin recalculation
+document.getElementById('quoteTable').addEventListener('input', function(e) {
+  var tr = e.target.closest('tr');
+  if (!tr) return;
+  var inputs = tr.querySelectorAll('input');
+  var cells = tr.querySelectorAll('td');
+  if (inputs.length < 4) return;
+  var qty = parseFloat(inputs[1].value) || 1;
+  var price = parseFloat(inputs[2].value) || 0;
+  var margin = parseFloat(inputs[3].value) || 0;
+  var cost = qty * price;
+  var sellPrice = cost * (1 + margin / 100);
+  cells.forEach(function(c) {
+    if (c.classList.contains('cost-cell')) c.textContent = cost.toFixed(2);
+    if (c.classList.contains('price-cell')) c.textContent = sellPrice.toFixed(2);
+  });
+  // Update totals
+  var tbl = e.target.closest('#quoteTable') || document.getElementById('quoteTable');
+  var tCost = 0, tPrice = 0;
+  tbl.querySelectorAll('tbody tr').forEach(function(r) {
+    var ri = r.querySelectorAll('input');
+    if (ri.length >= 4) {
+      var rQty = parseFloat(ri[1].value) || 1;
+      var rPrice = parseFloat(ri[2].value) || 0;
+      var rMargin = parseFloat(ri[3].value) || 0;
+      tCost += rQty * rPrice;
+      tPrice += rQty * rPrice * (1 + rMargin / 100);
+    }
+  });
+  var tfoot = tbl.querySelector('tfoot');
+  if (tfoot) {
+    var fc = tfoot.querySelectorAll('td');
+    fc.forEach(function(c) {
+      if (c.classList.contains('cost-cell')) c.textContent = tCost.toFixed(2);
+      if (c.classList.contains('price-cell')) c.textContent = tPrice.toFixed(2);
+    });
+  }
+});
+
+function updatePhpPrices() {
+  var rate = parseFloat(document.getElementById("exchangeRate").value) || 1;
+  // Save exchange rate to server for persistence
+  var xhr = new XMLHttpRequest();
+  xhr.open("PUT", "/api/projects/" + _pid, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  var dateVal = document.getElementById("exchangeRateDate").value;
+  xhr.send(JSON.stringify({exchange_rate: rate, exchg_date: dateVal}));
+  // Update PHP table from CNY table data
+  var cnyRows = document.querySelectorAll("#quoteTable tbody tr");
+  var phpBody = document.getElementById("phpQuoteBody");
+  var grandTotal = 0;
+  phpBody.innerHTML = "";
+  cnyRows.forEach(function(row) {
+    var inputs = row.querySelectorAll("input");
+    if (inputs.length < 4) return;
+    var name = inputs[0].value;
+    var qty = parseInt(inputs[1].value) || 1;
+    var cnyPrice = parseFloat(inputs[2].value) || 0;
+    var margin = parseFloat(inputs[3].value) || 0;
+    var sellPrice = cnyPrice * qty * (1 + margin / 100);
+    var phpPrice = Math.round(cnyPrice * (1 + margin / 100) * rate);
+    var phpTotal = phpPrice * qty;
+    grandTotal += phpTotal;
+    phpBody.innerHTML += "<tr><td></td><td>" + name + "</td><td>" + qty + "</td><td class='text-end'>" + phpPrice.toLocaleString() + "</td><td>pcs</td><td class='text-end'>" + phpTotal.toLocaleString() + "</td></tr>";
+  });
+  if (cnyRows.length === 0) {
+    phpBody.innerHTML = "<tr><td colspan='6' class='text-muted text-center py-3'>暂无设备</td></tr>";
+  }
+  var footEl = document.querySelector("#phpQuoteTable tfoot #phpGrandTotal");
+  if (footEl) footEl.textContent = grandTotal.toLocaleString();
+}
+
+function updateGrandTotal() {
+  // PHP Total is stored in totals.php_total from the server
+  var phpTotalEl = document.getElementById("phpGrandTotal");
+  if (phpTotalEl) {
+    var grand = parseInt(phpTotalEl.textContent.replace(/[^\d]/g, "")) || 0;
+    var instT = parseInt(document.getElementById("installTotal") ? document.getElementById("installTotal").value : 0) || 0;
+    var otherC = parseInt(document.getElementById("otherCost") ? document.getElementById("otherCost").value : 0) || 0;
+    var grandAll = grand + instT + otherC;
+    var el = document.getElementById("grandTotal");
+    if (el) el.textContent = grandAll;
+    var step5Inv = document.getElementById("step5Investment");
+    if (step5Inv) step5Inv.textContent = grandAll;
+  }
+}
+
+
+
+// ===== Step 5 Financial Calculation =====
+var _step5ChartPayback = null;
+var _step5ChartRevenue = null;
+var _step5Result = null;
+
+function step5ToggleType() {
+  var isPPA = document.getElementById("invPPA").checked;
+  document.getElementById("ppaDiscountGroup").style.display = isPPA ? "block" : "none";
+  document.getElementById("step5Results").style.display = "none";
+  document.getElementById("step5SelfDetails").style.display = "none";
+  document.getElementById("step5PPATable").style.display = "none";
+  document.getElementById("step5YearlyTable").style.display = "none";
+  document.getElementById("step5Charts").style.display = "none";
+  document.getElementById("step5Status").textContent = "...";
+}
+
+function step5SetPPA(el) {
+  document.querySelectorAll(".ppa-preset").forEach(function(b) { b.classList.remove("active"); });
+  el.classList.add("active");
+  document.getElementById("ppaDiscountSlider").value = el.dataset.val;
+  document.getElementById("ppaDiscountLabel").textContent = "PPA Discount: " + el.dataset.val + "%  (Customer pays " + el.dataset.val + "% of utility bill)";
+}
+
+function step5SliderPPA(el) {
+  document.getElementById("ppaDiscountLabel").textContent = "PPA Discount: " + el.value + "%  (Customer pays " + el.value + "% of utility bill)";
+  document.querySelectorAll(".ppa-preset").forEach(function(b) {
+    b.classList.toggle("active", parseInt(b.dataset.val) === parseInt(el.value));
+  });
+}
+
+function step5Calculate() {
+  var deg1 = parseFloat(document.getElementById("step5Deg1").value) || 2.0;
+  var deg2 = parseFloat(document.getElementById("step5Deg2").value) || 0.55;
+  var invType = document.querySelector('input[name="invType"]:checked').value;
+  var ppaDp = parseInt(document.getElementById("ppaDiscountSlider").value) || 70;
+
+  var btn = document.getElementById("step5CalcBtn");
+  btn.disabled = true;
+  var prog = document.getElementById("step5Progress");
+  prog.style.display = "inline-block";
+  document.getElementById("step5Status").textContent = "计算中...";
+
+  var x = new XMLHttpRequest();
+  x.open("POST", "/api/projects/" + _pid + "/step5/calculate", true);
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onreadystatechange = function() {
+    if (x.readyState == 4) {
+      btn.disabled = false;
+      prog.style.display = "none";
+      if (x.status == 200) {
+        _step5Result = JSON.parse(x.responseText);
+        step5Render(_step5Result);
+        document.getElementById("step5Status").textContent = "✅ 已计算";
+      } else {
+        try { var e = JSON.parse(x.responseText); alert("计算失败: " + (e.error || x.statusText)); } catch(ex) { alert("计算失败"); }
+        document.getElementById("step5Status").textContent = "❌ 失败";
+      }
+    }
+  };
+  x.send(JSON.stringify({deg_year1: deg1, deg_y2plus: deg2, investment_type: invType, ppa_discount_pct: ppaDp}));
+}
+
+function step5Render(data) {
+  var isPPA = data.investment_type === "ppa";
+  document.getElementById("step5Results").style.display = "block";
+  document.getElementById("step5Charts").style.display = isPPA ? "block" : "none";
+  document.getElementById("step5YearlyTable").style.display = "block";
+  document.getElementById("step5PPATable").style.display = isPPA ? "block" : "none";
+  document.getElementById("step5SelfDetails").style.display = isPPA ? "none" : "block";
+
+  // Results Grid
+  var grid = document.getElementById("step5ResultGrid");
+  var totalInv = (isPPA ? data.selected_scenario : data.self_investment).total_investment;
+  var fyr = (isPPA ? data.selected_scenario : data.self_investment).first_year_revenue;
+  var payback = (isPPA ? data.selected_scenario : data.self_investment).payback_years;
+  var irrVal = (isPPA ? data.selected_scenario : data.self_investment).irr;
+  var totalRev = (isPPA ? data.selected_scenario : data.self_investment).total_revenue_20y;
+
+  var html = '<div class="col-6"><strong>总投资:</strong> &#8369;' + formatNumber(totalInv) + '</div>';
+  html += '<div class="col-6"><strong>首年收益:</strong> &#8369;' + formatNumber(fyr) + '</div>';
+  html += '<div class="col-6"><strong>回收期:</strong> ' + (payback ? payback + ' 年' : '-') + '</div>';
+  html += '<div class="col-6"><strong>IRR:</strong> ' + (irrVal != null ? (irrVal * 100).toFixed(2) + '%' : '-') + '</div>';
+  html += '<div class="col-12"><strong>20年总收益:</strong> &#8369;' + formatNumber(totalRev) + '</div>';
+
+  if (!isPPA) {
+    var si = data.self_investment;
+    html += '<div class="col-6"><strong>Simple ROI:</strong> ' + si.simple_roi_pct + '%</div>';
+  }
+  grid.innerHTML = html;
+
+  // Yearly table
+  var yearly = (isPPA ? data.selected_scenario : data.self_investment).yearly || [];
+  step5RenderYearly(yearly, totalInv);
+
+  // PPA Scenario Table
+  if (isPPA && data.all_scenarios) {
+    step5RenderPPAScenarios(data.all_scenarios);
+  }
+
+  // Charts (PPA only)
+  if (isPPA && data.all_scenarios) {
+    step5RenderCharts(data.all_scenarios);
+  }
+}
+
+function step5RenderYearly(yearly, totalInv) {
+  var tbody = document.getElementById("step5YearlyBody");
+  tbody.innerHTML = "";
+  var cum = -totalInv;
+  yearly.forEach(function(y) {
+    cum += y.revenue;
+    tbody.innerHTML += "<tr><td>" + y.year + "</td><td class='text-end'>&#8369; " + formatNumber(y.revenue) + "</td><td class='text-end'>&#8369; " + formatNumber(cum) + "</td></tr>";
+  });
+}
+
+function step5RenderPPAScenarios(scenarios) {
+  var tbody = document.getElementById("ppaScenarioBody");
+  tbody.innerHTML = "";
+  scenarios.forEach(function(s) {
+    tbody.innerHTML += "<tr><td>" + s.discount_pct + "%</td><td>" + (s.payback_years ? s.payback_years + ' yr' : '-') + "</td><td class='text-end'>&#8369; " + formatNumber(s.total_revenue_20y) + "</td><td>" + (s.irr != null ? (s.irr * 100).toFixed(2) + '%' : '-') + "</td><td></td></tr>";
+  });
+}
+
+function step5RenderCharts(scenarios) {
+  var labels = scenarios.map(function(s) { return s.discount_pct + '%'; });
+  var paybacks = scenarios.map(function(s) { return s.payback_years || 0; });
+  var revenues = scenarios.map(function(s) { return s.total_revenue_20y / 1000000; });
+  var irrs = scenarios.map(function(s) { return s.irr ? s.irr * 100 : 0; });
+
+  if (typeof Chart === "undefined") return;
+
+  if (typeof _step5ChartPayback !== "undefined" && _step5ChartPayback) { _step5ChartPayback.destroy(); }
+  if (typeof _step5ChartRevenue !== "undefined" && _step5ChartRevenue) { _step5ChartRevenue.destroy(); }
+
+  var ctx1 = document.getElementById("chartPayback").getContext("2d");
+  _step5ChartPayback = new Chart(ctx1, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Payback Period (Years)",
+        data: paybacks,
+        borderColor: "#1a3a5c",
+        backgroundColor: "rgba(26,58,92,0.06)",
+        pointBackgroundColor: "#fff",
+        pointBorderColor: "#1a3a5c",
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 3,
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(255,255,255,0.95)", titleColor: "#1a3a5c",
+          bodyColor: "#555", borderColor: "#ddd", borderWidth: 1,
+          padding: 10, cornerRadius: 4
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "PPA Discount (%)", color: "#555", font: { size: 11, weight: "bold" } },
+          grid: { color: "rgba(200,200,200,0.25)", drawBorder: false },
+          ticks: { color: "#333", font: { size: 11 } }
+        },
+        y: {
+          title: { display: true, text: "Payback Period (Years)", color: "#555", font: { size: 11, weight: "bold" } },
+          grid: { color: "rgba(200,200,200,0.25)", drawBorder: false },
+          ticks: { color: "#333", font: { size: 11 }, callback: function(v) { return v.toFixed(1); } },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  var ctx2 = document.getElementById("chartRevenue").getContext("2d");
+  _step5ChartRevenue = new Chart(ctx2, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "20-Year Revenue (M PHP)",
+          data: revenues,
+          borderColor: "#00897b",
+          backgroundColor: "rgba(0,137,123,0.06)",
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#00897b",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 3,
+          tension: 0.35,
+          fill: true,
+          yAxisID: "y"
+        },
+        {
+          label: "IRR (%)",
+          data: irrs,
+          borderColor: "#e67e22",
+          backgroundColor: "rgba(230,126,34,0.06)",
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#e67e22",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 3,
+          tension: 0.35,
+          fill: true,
+          yAxisID: "y1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { boxWidth: 14, padding: 16, font: { size: 11 }, color: "#333", usePointStyle: true }
+        },
+        tooltip: {
+          backgroundColor: "rgba(255,255,255,0.95)", titleColor: "#1a3a5c",
+          bodyColor: "#555", borderColor: "#ddd", borderWidth: 1,
+          padding: 10, cornerRadius: 4
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "PPA Discount (%)", color: "#555", font: { size: 11, weight: "bold" } },
+          grid: { color: "rgba(200,200,200,0.25)", drawBorder: false },
+          ticks: { color: "#333", font: { size: 11 } }
+        },
+        y: {
+          type: "linear", position: "left",
+          title: { display: true, text: "20-Year Revenue (M PHP)", color: "#00897b", font: { size: 11, weight: "bold" } },
+          grid: { color: "rgba(200,200,200,0.25)", drawBorder: false },
+          ticks: { color: "#00897b", font: { size: 11 } }
+        },
+        y1: {
+          type: "linear", position: "right",
+          title: { display: true, text: "IRR (%)", color: "#e67e22", font: { size: 11, weight: "bold" } },
+          grid: { drawOnChartArea: false },
+          ticks: { color: "#e67e22", font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// Try to load Step 5 from stored results on page load
+if (_pid > 0) {
+  (function() {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/projects/" + _pid + "/step5", true);
+    x.onreadystatechange = function() {
+      if (x.readyState == 4 && x.status == 200) {
+        try {
+          var cfg = JSON.parse(x.responseText);
+          document.getElementById("step5Deg1").value = cfg.deg_year1 || 2.0;
+          document.getElementById("step5Deg2").value = cfg.deg_y2plus || 0.55;
+          if (cfg.investment_type === "ppa") {
+            document.getElementById("invPPA").checked = true;
+            document.getElementById("ppaDiscountSlider").value = cfg.ppa_discount_pct || 70;
+            step5ToggleType();
+            document.querySelectorAll(".ppa-preset").forEach(function(b) {
+              if (parseInt(b.dataset.val) === (cfg.ppa_discount_pct || 70)) { step5SetPPA(b); }
+            });
+          }
+        } catch(e) {}
+      }
+    };
+    x.send();
+  })();
+}
+
+</script>
+{% endblock %}
